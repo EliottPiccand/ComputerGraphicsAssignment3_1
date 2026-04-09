@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Material.h"
 #include <filesystem>
 #include <memory>
 
@@ -13,10 +14,30 @@ struct Vertex
     glm::vec2 uv;
 };
 
+class Mesh
+{
+  private:
+    GLuint vao;
+    GLuint vbo;
+    GLuint ibo;
+    size_t indexCount;
+
+    std::shared_ptr<Material> material;
+
+  public:
+    Mesh(GLuint vao, GLuint vbo, GLuint ibo, size_t indexCount, std::shared_ptr<Material> material);
+    ~Mesh();
+
+    static std::shared_ptr<Mesh> load(const std::filesystem::path &path);
+
+    void draw() const;
+};
+
 bool operator==(const Vertex &a, const Vertex &b);
 
 namespace std
 {
+
 template <> struct hash<Vertex>
 {
     size_t operator()(const Vertex &v) const noexcept
@@ -43,24 +64,5 @@ template <> struct hash<Vertex>
         return seed;
     }
 };
+
 } // namespace std
-
-class Mesh
-{
-  private:
-    GLuint vao;
-    GLuint vbo;
-    GLuint ibo;
-    size_t indexCount;
-
-    GLuint texture;
-    glm::vec3 diffuseColor;
-
-  public:
-    Mesh(GLuint vao, GLuint vbo, GLuint ibo, size_t indexCount, GLuint texture, glm::vec3 diffuseColor);
-    ~Mesh();
-
-    static std::shared_ptr<Mesh> load(const std::filesystem::path &path);
-
-    void draw() const;
-};

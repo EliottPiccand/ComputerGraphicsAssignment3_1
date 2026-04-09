@@ -26,8 +26,6 @@ target_link_libraries(${EXECUTABLE_NAME} PRIVATE OpenGL::GL OpenGL::GLU)
 target_compile_definitions(${EXECUTABLE_NAME}
   PUBLIC
     GLM_ENABLE_EXPERIMENTAL
-    TINYOBJLOADER_IMPLEMENTATION
-    STB_IMAGE_IMPLEMENTATION
 )
 
 target_compile_definitions(${EXECUTABLE_NAME} PRIVATE

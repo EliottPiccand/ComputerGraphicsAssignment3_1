@@ -8,11 +8,13 @@
 #include "Components/LightSource.h"
 #include "Components/MeshInstance.h"
 #include "Components/Transform.h"
+#include "Components/Water.h"
 #include "Events/EventQueue.h"
 #include "Events/WindowResized.h"
 #include "Input.h"
 #include "Singleton.h"
 #include "Utils/Color.h"
+#include "Utils/Constants.h"
 #include "Utils/Profiling.h"
 #include "Utils/Random.h"
 
@@ -30,16 +32,18 @@ Application::Application()
     Input::bindMouseButton(Input::Action::UIClick, GLFW_MOUSE_BUTTON_1);
     Input::bindKey(Input::Action::ToggleFreeView, GLFW_KEY_ENTER);
 
-    AssetLoader::load<Mesh>("Models/Ship.obj");
+    // Load assets
+    AssetLoader::get<Mesh>("Models/Ship.obj");
 
     EventQueue::registerCallback<event::WindowResized>([](const event::WindowResized &event) {
         glViewport(0, 0, static_cast<GLsizei>(event.width), static_cast<GLsizei>(event.height));
     });
 
     sceneRoot = std::make_shared<GameObject>();
+    sceneRoot->addComponent<component::Transform>();
 
     auto perspectiveCamera = sceneRoot->addChild();
-    perspectiveCamera->addComponent<component::Transform>(glm::vec3{2.0f, 2.0f, 2.0f});
+    perspectiveCamera->addComponent<component::Transform>(glm::vec3{5.0f, 5.0f, 5.0f});
     Singleton::activeCamera = perspectiveCamera->addComponent<component::Camera3D>(component::Camera3D::Perspective{
         .fov = 45.0f,
         .near = 0.1f,
@@ -47,15 +51,24 @@ Application::Application()
         .lookAt = {0.0f, 0.0f, 0.0f},
     });
     freeViewControls = perspectiveCamera->addComponent<component::FreeViewControls>();
-    perspectiveCamera->addComponent<component::LightSource>(rgba(255, 255, 255, 1), rgb(225, 225, 225));
+ 
+    auto sun = sceneRoot->addChild();
+    sun->addComponent<component::Transform>(UP * 100.0f - NORTH * 30.0f);
+    sun->addComponent<component::LightSource>(rgba(252, 231, 165, 1), rgb(255, 255, 255));
 
     auto ship = sceneRoot->addChild();
-    ship->addComponent<component::Transform>();
+    ship->addComponent<component::Transform>(glm::vec3{0.0f, 0.0f, -0.8f});
     ship->addComponent<component::MeshInstance>(AssetLoader::get<Mesh>("Models/Ship.obj"));
+
+    auto water = sceneRoot->addChild();
+    water->addComponent<component::Transform>(glm::vec3{}, glm::vec3{}, glm::vec3{100.0f, 100.0f, 1.0f});
+    water->addComponent<component::Water>();
 
     restart();
 
     sceneRoot->initialize();
+
+    Singleton::gameLoaded = true;
 }
 
 void Application::initializeOpenGL()
@@ -135,7 +148,8 @@ void Application::render() const
 {
     ProfileScope;
 
-    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+    constexpr const auto SKY_COLOR = rgba(193, 234, 255, 1);
+    glClearColor(SKY_COLOR.r, SKY_COLOR.g, SKY_COLOR.b, SKY_COLOR.a);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     Singleton::activeCamera.lock()->bind();

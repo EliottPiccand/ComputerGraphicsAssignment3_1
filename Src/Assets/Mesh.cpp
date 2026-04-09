@@ -3,18 +3,14 @@
 #include <cstdint>
 #include <string>
 
-#include <stb/stb_image.h>
 #include <tinyobjloader/tiny_obj_loader.h>
 
+#include "Assets/AssetLoader.h"
+#include "Assets/Material.h"
 #include "Utils/Log.h"
 
-bool operator==(const Vertex &a, const Vertex &b)
-{
-    return a.position == b.position && a.normal == b.normal && a.uv == b.uv;
-}
-
-Mesh::Mesh(GLuint vao, GLuint vbo, GLuint ibo, size_t indexCount, GLuint texture, glm::vec3 diffuseColor)
-    : vao(vao), vbo(vbo), ibo(ibo), indexCount(indexCount), texture(texture), diffuseColor(diffuseColor)
+Mesh::Mesh(GLuint vao, GLuint vbo, GLuint ibo, size_t indexCount, std::shared_ptr<Material> material)
+    : vao(vao), vbo(vbo), ibo(ibo), indexCount(indexCount), material(material)
 {
 }
 
@@ -23,10 +19,6 @@ Mesh::~Mesh()
     glDeleteVertexArrays(1, &vao);
     glDeleteBuffers(1, &vbo);
     glDeleteBuffers(1, &ibo);
-    if (texture != 0)
-    {
-        glDeleteTextures(1, &texture);
-    }
 }
 
 std::shared_ptr<Mesh> Mesh::load(const std::filesystem::path &path)
@@ -128,7 +120,7 @@ std::shared_ptr<Mesh> Mesh::load(const std::filesystem::path &path)
     glEnableClientState(GL_TEXTURE_COORD_ARRAY);
     glTexCoordPointer(2, GL_FLOAT, sizeof(Vertex), reinterpret_cast<const void *>(offsetof(Vertex, uv)));
 
-    GLuint texture = 0;
+    std::shared_ptr<Material> material = nullptr;
     if (!materials.empty())
     {
         if (materials.size() > 1)
@@ -136,68 +128,17 @@ std::shared_ptr<Mesh> Mesh::load(const std::filesystem::path &path)
             LOG_WARNING("only one material is supported, only the first one listed will be used");
         }
 
-        const auto &material = materials[0];
-        LOG_DEBUG("materials : \n- alpha_texname: {}\n- ambient_texname: {}\n- bump_texname: {}\n- diffuse_texname: "
-                  "{}\n- displacement_texname: {}\n- emissive_texname: {}\n- metallic_texname: {}\n- normal_texname: "
-                  "{}\n- reflection_texname: {}\n- roughness_texname: {}\n- sheen_texname: {}\n- specular_texname: "
-                  "{}\n- specular_highlight_texname: {}",
-                  material.alpha_texname, material.ambient_texname, material.bump_texname, material.diffuse_texname,
-                  material.displacement_texname, material.emissive_texname, material.metallic_texname,
-                  material.normal_texname, material.reflection_texname, material.roughness_texname,
-                  material.sheen_texname, material.specular_texname, material.specular_highlight_texname);
-
-        if (!material.diffuse_texname.empty())
-        {
-            std::string texturePath = materials[0].diffuse_texname;
-
-            int width, height, channels;
-            unsigned char *data = stbi_load(texturePath.c_str(), &width, &height, &channels, 4); // Force RGBA
-
-            if (data)
-            {
-                LOG_DEBUG("texture loaded");
-
-                glGenTextures(1, &texture);
-                glBindTexture(GL_TEXTURE_2D, texture);
-
-                // Set texture parameters
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-
-                // Set texture environment
-                glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
-
-                // Upload data
-                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-                glGenerateMipmap(GL_TEXTURE_2D);
-
-                stbi_image_free(data);
-                LOG_DEBUG("Loaded texture: {}", texturePath);
-            }
-            else
-            {
-                LOG_ERROR("Failed to load texture: {}", texturePath);
-            }
-        }
+        material = AssetLoader::get<Material>(materials[0].name, materials[0]);
     }
 
-    glm::vec3 diffuseColor = glm::vec3(1.0f, 1.0f, 1.0f);
-    if (!materials.empty())
-    {
-        diffuseColor = glm::vec3(materials[0].diffuse[0], materials[0].diffuse[1], materials[0].diffuse[2]);
-    }
-
-    return std::make_shared<Mesh>(vao, vbo, ibo, indices.size(), texture, diffuseColor);
+    return std::make_shared<Mesh>(vao, vbo, ibo, indices.size(), material);
 }
 
 void Mesh::draw() const
 {
-    if (texture != 0)
+    if (material != nullptr)
     {
-        glEnable(GL_TEXTURE_2D);
-        glBindTexture(GL_TEXTURE_2D, texture);
+        material->bind();
     }
 
     glBindVertexArray(vao);
@@ -206,8 +147,13 @@ void Mesh::draw() const
 
     glBindVertexArray(0);
 
-    if (texture != 0)
+    if (material != nullptr)
     {
-        glDisable(GL_TEXTURE_2D);
+        material->unbind();
     }
+}
+
+bool operator==(const Vertex &a, const Vertex &b)
+{
+    return a.position == b.position && a.normal == b.normal && a.uv == b.uv;
 }

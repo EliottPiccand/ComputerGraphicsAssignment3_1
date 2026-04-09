@@ -6,5 +6,6 @@
 
 struct Singleton
 {
+    static inline bool gameLoaded = false;
     static inline std::weak_ptr<component::Camera3D> activeCamera;
 };
