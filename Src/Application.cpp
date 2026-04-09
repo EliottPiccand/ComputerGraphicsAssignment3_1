@@ -30,7 +30,7 @@ Application::Application()
     Input::bindMouseButton(Input::Action::UIClick, GLFW_MOUSE_BUTTON_1);
     Input::bindKey(Input::Action::ToggleFreeView, GLFW_KEY_ENTER);
 
-    AssetLoader::load<Mesh>("Models/vicking_room.obj");
+    AssetLoader::load<Mesh>("Models/Ship.obj");
 
     EventQueue::registerCallback<event::WindowResized>([](const event::WindowResized &event) {
         glViewport(0, 0, static_cast<GLsizei>(event.width), static_cast<GLsizei>(event.height));
@@ -47,14 +47,11 @@ Application::Application()
         .lookAt = {0.0f, 0.0f, 0.0f},
     });
     freeViewControls = perspectiveCamera->addComponent<component::FreeViewControls>();
+    perspectiveCamera->addComponent<component::LightSource>(rgba(255, 255, 255, 1), rgb(225, 225, 225));
 
-    auto light = sceneRoot->addChild();
-    light->addComponent<component::Transform>(glm::vec3{5.0f, 10.0f, 5.0f});
-    light->addComponent<component::LightSource>(rgb(50, 50, 50), rgb(225, 225, 225));
-
-    auto vikingRoom = sceneRoot->addChild();
-    vikingRoom->addComponent<component::Transform>();
-    vikingRoom->addComponent<component::MeshInstance>(AssetLoader::get<Mesh>("Models/vicking_room.obj"));
+    auto ship = sceneRoot->addChild();
+    ship->addComponent<component::Transform>();
+    ship->addComponent<component::MeshInstance>(AssetLoader::get<Mesh>("Models/Ship.obj"));
 
     restart();
 

@@ -5,3 +5,7 @@ url = https://github.com/wolfpld/tracy
 [submodule "Lib/tinyobjloader"]
 path = Lib/tinyobjloader
 url = https://github.com/tinyobjloader/tinyobjloader
+
+[submodule "Lib/stb"]
+path = Lib/stb
+url = https://github.com/nothings/stb

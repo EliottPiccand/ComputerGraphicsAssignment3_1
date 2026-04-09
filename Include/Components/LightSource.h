@@ -14,7 +14,7 @@ namespace component
 class LightSource : public Component
 {
   public:
-    static inline constexpr const Color AMBIENT_COLOR = rgb(25, 25, 25);
+    static inline constexpr const Color AMBIENT_COLOR = rgba(255, 255, 255, 1);
 
   private:
     static inline std::unordered_set<GLenum> availableLights = {

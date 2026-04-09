@@ -27,6 +27,7 @@ target_compile_definitions(${EXECUTABLE_NAME}
   PUBLIC
     GLM_ENABLE_EXPERIMENTAL
     TINYOBJLOADER_IMPLEMENTATION
+    STB_IMAGE_IMPLEMENTATION
 )
 
 target_compile_definitions(${EXECUTABLE_NAME} PRIVATE
@@ -43,32 +44,15 @@ endif()
 
 # --- Assets ---
 set(ASSETS_SRC_DIR ${CMAKE_CURRENT_LIST_DIR}/Assets)
-set(ASSETS_BIN_DIR ${CMAKE_BINARY_DIR}/Assets)
+set(ASSETS_DST_DIR ${CMAKE_BINARY_DIR}/Assets)
+set(ASSETS_BYPRODUCT ${CMAKE_CURRENT_BINARY_DIR}/.copy_assets_timestamp)
 
-message("\n\n\n")
-message("${CMAKE_BINARY_DIR}")
-message("\n\n\n")
+find_package(Python REQUIRED COMPONENTS Interpreter)
 
-file(GLOB_RECURSE ASSETS_SOURCES "${ASSETS_SRC_DIR}/*")
-foreach(ASSET_SRC ${ASSETS_SOURCES})
-    file(RELATIVE_PATH REL_PATH ${ASSETS_SRC_DIR} ${ASSET_SRC})
+add_custom_target(copy-assets ALL
+    COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/Scripts/copy_assets.py ${ASSETS_SRC_DIR} ${ASSETS_DST_DIR} ${ASSETS_BYPRODUCT}
+    COMMENT "Copying Assets"
+    BYPRODUCTS ${ASSETS_BYPRODUCT}
+)
 
-    set(ASSET_DST ${ASSETS_BIN_DIR}/${REL_PATH})
-
-    get_filename_component(ASSET_DST_DIR ${ASSET_DST} DIRECTORY)
-
-    file(MAKE_DIRECTORY ${ASSET_DST_DIR})
-
-    add_custom_command(
-        OUTPUT ${ASSET_DST}
-        COMMAND ${CMAKE_COMMAND} -E copy ${ASSET_SRC} ${ASSET_DST}
-        DEPENDS ${ASSET_SRC}
-        COMMENT "Copying ${ASSET_SRC} to ${ASSET_DST}"
-        VERBATIM
-    )
-
-    list(APPEND ASSETS_OUTPUTS ${ASSET_DST})
-endforeach()
-
-add_custom_target(${EXECUTABLE_NAME}-assets DEPENDS ${ASSETS_OUTPUTS})
-add_dependencies(${EXECUTABLE_NAME} ${EXECUTABLE_NAME}-assets)
+add_dependencies(${EXECUTABLE_NAME} copy-assets)
