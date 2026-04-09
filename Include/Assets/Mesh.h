@@ -9,6 +9,7 @@
 struct Vertex
 {
     glm::vec3 position;
+    glm::vec3 normal;
 };
 
 bool operator==(const Vertex &a, const Vertex &b);
@@ -23,9 +24,16 @@ template <> struct hash<Vertex>
         size_t h2 = std::hash<float>{}(v.position.y);
         size_t h3 = std::hash<float>{}(v.position.z);
 
+        size_t h4 = std::hash<float>{}(v.normal.x);
+        size_t h5 = std::hash<float>{}(v.normal.y);
+        size_t h6 = std::hash<float>{}(v.normal.z);
+
         size_t seed = h1;
         seed ^= h2 + 0x9e3779b9 + (seed << 6) + (seed >> 2);
         seed ^= h3 + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+        seed ^= h4 + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+        seed ^= h5 + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+        seed ^= h6 + 0x9e3779b9 + (seed << 6) + (seed >> 2);
         return seed;
     }
 };

@@ -21,6 +21,13 @@ class Input
         CancelFire,
         ToggleFullScreen,
         UIClick,
+        FreeViewForward,
+        FreeViewLeft,
+        FreeViewBackward,
+        FreeViewRight,
+        FreeViewUp,
+        FreeViewDown,
+        ToggleFreeView,
     };
 
     enum class State
@@ -36,6 +43,12 @@ class Input
     static inline std::unordered_map<Action, unsigned int> binds;
     static inline std::unordered_map<Action, State> states;
 
+    static inline glm::vec2 lastMousePosition;
+    static inline glm::vec2 mousePosition;
+    static inline glm::vec2 mouseDelta;
+
+    static glm::vec2 fetchMousePosition();
+
   public:
     static void initialize(const Window &window);
 
@@ -45,6 +58,6 @@ class Input
 
     [[nodiscard]] static State getState(Action action);
     [[nodiscard]] static bool isPressed(Action action);
-    [[nodiscard]] static bool isMouseInWindow();
-    [[nodiscard]] static glm::vec2 getMousePos();
+    [[nodiscard]] static glm::vec2 getMousePosition();
+    [[nodiscard]] static glm::vec2 getMouseDelta();
 };

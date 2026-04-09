@@ -8,6 +8,10 @@ constexpr const unsigned int MASK = (1 << MASK_OFFSET) - 1;
 void Input::initialize(const Window &window)
 {
     window_handle = window.handle;
+    
+    // disable mouse acceleration
+    if (glfwRawMouseMotionSupported())
+        glfwSetInputMode(window.handle, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
 }
 
 void Input::bindKey(Action action, unsigned int key)
@@ -32,6 +36,12 @@ void Input::update()
 {
     assert(window_handle != nullptr && "calling Input::update before initializing");
 
+    // mouse motion
+    lastMousePosition = mousePosition;
+    mousePosition = fetchMousePosition();
+    mouseDelta = lastMousePosition - mousePosition;
+
+    // keys
     for (const auto &[action, key] : binds)
     {
         const auto glfw_state = ((key & (MASK << MASK_OFFSET)) == 0)
@@ -81,25 +91,9 @@ bool Input::isPressed(Action action)
     return states.at(action) == State::JustPressed || states.at(action) == State::HeldPressed;
 }
 
-bool Input::isMouseInWindow()
+glm::vec2 Input::fetchMousePosition()
 {
-    assert(window_handle != nullptr && "calling Input::isMouseInWindow before initializing");
-
-    double xpos = 0.0;
-    double ypos = 0.0;
-    glfwGetCursorPos(window_handle, &xpos, &ypos);
-
-    int windowWidth = 0;
-    int windowHeight = 0;
-    glfwGetWindowSize(window_handle, &windowWidth, &windowHeight);
-
-    return 0.0 <= xpos && xpos < static_cast<double>(windowWidth) && 0.0 <= ypos &&
-           ypos < static_cast<double>(windowHeight);
-}
-
-glm::vec2 Input::getMousePos()
-{
-    assert(window_handle != nullptr && "calling Input::getMousePos before initializing");
+    assert(window_handle != nullptr && "calling Input::fetchMousePosition before initializing");
 
     double xpos, ypos;
     glfwGetCursorPos(window_handle, &xpos, &ypos);
@@ -118,4 +112,12 @@ glm::vec2 Input::getMousePos()
         windowHeight > 0 ? static_cast<float>(framebufferHeight) / static_cast<float>(windowHeight) : 1.0f;
 
     return {static_cast<float>(xpos) * scaleX, static_cast<float>(ypos) * scaleY};
+}
+
+glm::vec2 Input::getMousePosition() {
+    return mousePosition;
+}
+
+glm::vec2 Input::getMouseDelta() {
+    return mouseDelta;
 }

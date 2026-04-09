@@ -35,6 +35,8 @@ class Window
 
     void setTitle(std::string title) const;
     void toggleFullscreen();
+    void captureMouse();
+    void releaseMouse();
 
     [[nodiscard]] std::pair<uint32_t, uint32_t> getFramebufferSize() const;
 

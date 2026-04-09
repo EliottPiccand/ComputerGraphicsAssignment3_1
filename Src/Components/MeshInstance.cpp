@@ -1,9 +1,7 @@
 #include "Components/MeshInstance.h"
 
 #include <cassert>
-#include <memory>
 
-#include "Assets/Mesh.h"
 #include "Utils/Profiling.h"
 
 using namespace component;

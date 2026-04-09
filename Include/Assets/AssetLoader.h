@@ -9,7 +9,6 @@
 #include "Utils/Log.h"
 #include "Utils/Path.h"
 
-
 template <typename T>
 concept Asset = requires(const std::filesystem::path &path) {
     { T::load(path) } -> std::same_as<std::shared_ptr<T>>;

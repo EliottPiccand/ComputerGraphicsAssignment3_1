@@ -1,10 +1,9 @@
 #pragma once
 
-#include <cstdint>
 #include <memory>
 
 #include "Clock.h"
-#include "Components/Camera3D.h"
+#include "Components/FreeViewControls.h"
 #include "GameObject.h"
 #include "Window.h"
 
@@ -16,13 +15,15 @@ class Application
     std::unique_ptr<Window> window;
 
     std::shared_ptr<GameObject> sceneRoot;
-    std::weak_ptr<component::Camera3D> activeCamera;
+
+    std::weak_ptr<component::FreeViewControls> freeViewControls;
+
+    void initializeOpenGL();
 
     void update(float deltaTime);
     void render() const;
 
     void restart();
-    void onResize(uint32_t width, uint32_t height);
 
   public:
     Application();

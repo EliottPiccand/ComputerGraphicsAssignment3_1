@@ -7,7 +7,6 @@
 
 #include "Events/EventQueue.h"
 #include "Events/WindowResized.h"
-#include "GLFW/glfw3.h"
 #include "Utils/Profiling.h"
 
 static void glfwErrorCallback(int code, const char *description)
@@ -52,6 +51,14 @@ void Window::endFrame() const
     glfwSwapBuffers(handle);
     CollectGpuProfilingEvents;
     glfwPollEvents();
+}
+
+void Window::captureMouse() {
+    glfwSetInputMode(handle, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+}
+
+void Window::releaseMouse() {
+    glfwSetInputMode(handle, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 }
 
 void Window::setTitle(std::string title) const

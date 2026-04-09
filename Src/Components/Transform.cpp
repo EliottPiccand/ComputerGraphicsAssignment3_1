@@ -58,6 +58,10 @@ glm::mat4 Transform::resolve() const
     return transform;
 }
 
+void Transform::translate(const glm::vec3 &by) {
+    position += by;
+}
+
 bool Transform::render() const
 {
     ProfileScope;

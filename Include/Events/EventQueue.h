@@ -16,7 +16,7 @@ class EventQueue
 
   private:
     using GenericCallback = std::function<void(const event::Event &)>;
-    
+
     static inline std::vector<std::unique_ptr<event::Event>> events;
     static inline std::unordered_map<std::type_index, std::vector<GenericCallback>> callbacks;
 

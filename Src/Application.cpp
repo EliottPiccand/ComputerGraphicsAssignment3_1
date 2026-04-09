@@ -1,20 +1,20 @@
 #include "Application.h"
 
-#include <memory>
-
 #include <GLFW/glfw3.h>
 
 #include "Assets/AssetLoader.h"
 #include "Assets/Mesh.h"
 #include "Components/Camera3D.h"
+#include "Components/LightSource.h"
 #include "Components/MeshInstance.h"
 #include "Components/Transform.h"
 #include "Events/EventQueue.h"
 #include "Events/WindowResized.h"
 #include "Input.h"
+#include "Singleton.h"
+#include "Utils/Color.h"
 #include "Utils/Profiling.h"
 #include "Utils/Random.h"
-#include "Window.h"
 
 Application::Application()
 {
@@ -23,36 +23,64 @@ Application::Application()
     Random::initialize();
     window = std::make_unique<Window>();
 
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-    glEnable(GL_DEPTH_TEST);
-    glDepthFunc(GL_LESS);
+    initializeOpenGL();
 
     Input::initialize(*window);
     Input::bindKey(Input::Action::ToggleFullScreen, GLFW_KEY_F11);
     Input::bindMouseButton(Input::Action::UIClick, GLFW_MOUSE_BUTTON_1);
+    Input::bindKey(Input::Action::ToggleFreeView, GLFW_KEY_ENTER);
 
     AssetLoader::load<Mesh>("Models/vicking_room.obj");
 
-    sceneRoot = std::make_shared<GameObject>();
+    EventQueue::registerCallback<event::WindowResized>([](const event::WindowResized &event) {
+        glViewport(0, 0, static_cast<GLsizei>(event.width), static_cast<GLsizei>(event.height));
+    });
 
-    auto vikingRoom = sceneRoot->addChild();
-    vikingRoom->addComponent<component::Transform>();
-    vikingRoom->addComponent<component::MeshInstance>(AssetLoader::get<Mesh>("Models/vicking_room.obj"));
+    sceneRoot = std::make_shared<GameObject>();
 
     auto perspectiveCamera = sceneRoot->addChild();
     perspectiveCamera->addComponent<component::Transform>(glm::vec3{2.0f, 2.0f, 2.0f});
-    activeCamera = perspectiveCamera->addComponent<component::Camera3D>(component::Camera3D::Perspective{
+    Singleton::activeCamera = perspectiveCamera->addComponent<component::Camera3D>(component::Camera3D::Perspective{
         .fov = 45.0f,
         .near = 0.1f,
         .far = 100.0f,
         .lookAt = {0.0f, 0.0f, 0.0f},
     });
+    freeViewControls = perspectiveCamera->addComponent<component::FreeViewControls>();
+
+    auto light = sceneRoot->addChild();
+    light->addComponent<component::Transform>(glm::vec3{5.0f, 10.0f, 5.0f});
+    light->addComponent<component::LightSource>(rgb(50, 50, 50), rgb(225, 225, 225));
+
+    auto vikingRoom = sceneRoot->addChild();
+    vikingRoom->addComponent<component::Transform>();
+    vikingRoom->addComponent<component::MeshInstance>(AssetLoader::get<Mesh>("Models/vicking_room.obj"));
 
     restart();
 
     sceneRoot->initialize();
+}
+
+void Application::initializeOpenGL()
+{
+    // Transparency
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    // Depth Test
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LESS);
+
+    // Back Faces Culling
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_BACK);
+    glFrontFace(GL_CCW);
+
+    // Light
+    glEnable(GL_LIGHTING);
+    glEnable(GL_NORMALIZE);
+
+    glLightModelfv(GL_LIGHT_MODEL_AMBIENT, reinterpret_cast<const GLfloat *>(&component::LightSource::AMBIENT_COLOR));
 }
 
 void Application::run()
@@ -86,6 +114,22 @@ void Application::update(float deltaTime)
     {
         window->toggleFullscreen();
     }
+    if (Input::getState(Input::Action::ToggleFreeView) == Input::State::JustReleased)
+    {
+        auto &freeViewControlsEnabled = freeViewControls.lock()->active;
+
+        freeViewControlsEnabled = !freeViewControlsEnabled;
+        if (freeViewControlsEnabled)
+        {
+            window->captureMouse();
+            LOG_INFO("free view mode enabled");
+        }
+        else
+        {
+            window->releaseMouse();
+            LOG_INFO("free view mode disabled");
+        }
+    }
 
     sceneRoot->update(deltaTime);
 }
@@ -97,19 +141,12 @@ void Application::render() const
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    activeCamera.lock()->bind();
+    Singleton::activeCamera.lock()->bind();
     sceneRoot->render();
 }
 
 void Application::restart()
 {
-    {
-        const auto [framebufferWidth, framebufferHeight] = window->getFramebufferSize();
-        onResize(framebufferWidth, framebufferHeight);
-    }
-}
-
-void Application::onResize(uint32_t width, uint32_t height)
-{
-    EventQueue::post<event::WindowResized>(width, height);
+    const auto [framebufferWidth, framebufferHeight] = window->getFramebufferSize();
+    EventQueue::post<event::WindowResized>(framebufferWidth, framebufferHeight);
 }

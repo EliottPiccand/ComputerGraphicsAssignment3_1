@@ -22,6 +22,8 @@ class Transform : public Component
 
     glm::mat4 resolve() const;
 
+    void translate(const glm::vec3 &by);
+
     bool render() const override;
 };
 

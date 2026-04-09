@@ -27,12 +27,16 @@ void Camera3D::onViewportResize(uint32_t width, uint32_t height)
     aspectRatio = static_cast<float>(width) / static_cast<float>(height);
 }
 
+glm::vec3 Camera3D::getPosition() const {
+    return glm::vec3(transform.lock()->resolve()[3]);
+}
+
 void Camera3D::bind() const
-{   
+{
     ProfileScope;
     ProfileScopeGPU("Camera3D::bind");
 
-    const auto eye = glm::vec3(transform.lock()->resolve()[3]);
+    const auto eye = getPosition();
 
     if (std::holds_alternative<Perspective>(data))
     {
