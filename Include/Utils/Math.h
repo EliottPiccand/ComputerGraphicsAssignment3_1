@@ -1,6 +1,3 @@
 #pragma once
 
-template <typename T> [[nodiscard]] T lerp(const T &start, const T &end, float t)
-{
-    return start + t * (end - start);
-}
+constexpr const float EPSILON = 1e-5f;

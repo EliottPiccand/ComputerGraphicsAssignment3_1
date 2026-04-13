@@ -7,10 +7,6 @@
 
 class Random
 {
-  private:
-    static inline std::random_device randomDevice;
-    static inline std::mt19937 generator;
-
   public:
     static void initialize();
     [[nodiscard]] static float random(float min, float max);
@@ -20,12 +16,16 @@ class Random
 
     template <typename T, RangeOf<T> R> [[nodiscard]] static const T &range(const R &range);
     template <typename T> [[nodiscard]] static T pop(std::vector<T> &range);
+
+  private:
+    static inline std::random_device random_device_;
+    static inline std::mt19937 generator_;
 };
 
 template <Range R> size_t Random::index(const R &range)
 {
     std::uniform_int_distribution<size_t> distribution(0, range.size() - 1);
-    return distribution(generator);
+    return distribution(generator_);
 }
 
 template <typename T, RangeOf<T> R> const T &Random::range(const R &range)

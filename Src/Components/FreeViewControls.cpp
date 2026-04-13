@@ -2,14 +2,14 @@
 
 #include <variant>
 
-#include <glm/gtx/rotate_vector.hpp>
+#include <Lib/glm.h>
 
 #include "Components/Camera3D.h"
 #include "GameObject.h" // IWYU pragma: keep
 #include "Input.h"
 #include "Singleton.h"
 #include "Utils/Constants.h"
-
+#include "Utils/Math.h"
 
 using namespace component;
 
@@ -23,69 +23,81 @@ FreeViewControls::FreeViewControls()
     Input::bindKey(Input::Action::FreeViewDown, GLFW_KEY_LEFT_SHIFT);
 }
 
-void FreeViewControls::update(float deltaTime)
+void FreeViewControls::update(float delta_time)
 {
-    constexpr const float SPEED = 3.0f; // m/s
+    constexpr const float SPEED = 6.0f; // m/s
     constexpr const float VERTICAL_SENSITIVITY = 0.3f;
     constexpr const float HORIZONTAL_SENSITIVITY = 0.3f;
 
-    if (!active) {
+    if (!active)
+    {
         return;
     }
 
-    const auto &camera = Singleton::activeCamera.lock();
-    if (std::holds_alternative<Camera3D::Perspective>(camera->data)) {
-        auto &perspective = std::get<Camera3D::Perspective>(camera->data);
-        
+    const auto &camera = Singleton::active_camera.lock();
+    if (std::holds_alternative<Camera3D::Perspective>(camera->data_))
+    {
+        auto &perspective = std::get<Camera3D::Perspective>(camera->data_);
+
         const auto cameraPosition = camera->getPosition();
-        auto cameraDirection = glm::normalize(perspective.lookAt - cameraPosition);
-        auto forward = glm::normalize(glm::dot(cameraDirection, NORTH) * NORTH + glm::dot(cameraDirection, EAST) * EAST);
+        auto camera_direction = glm::normalize(perspective.look_at - cameraPosition);
+        auto forward =
+            glm::normalize(glm::dot(camera_direction, NORTH) * NORTH + glm::dot(camera_direction, EAST) * EAST);
         auto right = glm::cross(forward, UP);
 
         // rotation
-        auto mouseDelta = Input::getMouseDelta(); 
-        if (glm::length(mouseDelta) > 1e-5) {
-            cameraDirection = glm::rotate(cameraDirection, mouseDelta.y * deltaTime * VERTICAL_SENSITIVITY, right);
-            cameraDirection = glm::rotate(cameraDirection, mouseDelta.x * deltaTime * HORIZONTAL_SENSITIVITY, UP);
-        
-            perspective.lookAt = cameraPosition + cameraDirection;
+        auto mouse_delta = Input::getMouseDelta();
+        if (glm::length(mouse_delta) > EPSILON)
+        {
+            camera_direction = glm::rotate(camera_direction, mouse_delta.y * delta_time * VERTICAL_SENSITIVITY, right);
+            camera_direction = glm::rotate(camera_direction, mouse_delta.x * delta_time * HORIZONTAL_SENSITIVITY, UP);
 
-            forward = glm::normalize(glm::dot(cameraDirection, NORTH) * NORTH + glm::dot(cameraDirection, EAST) * EAST);
+            perspective.look_at = cameraPosition + camera_direction;
+
+            forward = glm::normalize(glm::dot(camera_direction, NORTH) * NORTH + glm::dot(camera_direction, EAST) * EAST);
             right = glm::cross(forward, UP);
         }
 
         // motion
         glm::vec3 motion{};
 
-        if (Input::isPressed(Input::Action::FreeViewForward)) {
+        if (Input::isPressed(Input::Action::FreeViewForward))
+        {
             motion += forward;
         }
-        if (Input::isPressed(Input::Action::FreeViewLeft)) {
+        if (Input::isPressed(Input::Action::FreeViewLeft))
+        {
             motion -= right;
         }
-        if (Input::isPressed(Input::Action::FreeViewBackward)) {
+        if (Input::isPressed(Input::Action::FreeViewBackward))
+        {
             motion -= forward;
         }
-        if (Input::isPressed(Input::Action::FreeViewRight)) {
+        if (Input::isPressed(Input::Action::FreeViewRight))
+        {
             motion += right;
         }
 
-        if (glm::length(motion) > 1e-5) {
+        if (glm::length(motion) > EPSILON)
+        {
             motion = glm::normalize(motion);
         }
 
-        if (Input::isPressed(Input::Action::FreeViewUp)) {
+        if (Input::isPressed(Input::Action::FreeViewUp))
+        {
             motion += UP;
         }
-        if (Input::isPressed(Input::Action::FreeViewDown)) {
+        if (Input::isPressed(Input::Action::FreeViewDown))
+        {
             motion -= UP;
         }
 
-        if (glm::length(motion) > 1e-5) {
-            motion *= SPEED * deltaTime;
+        if (glm::length(motion) > EPSILON)
+        {
+            motion *= SPEED * delta_time;
 
-            perspective.lookAt += motion;
-            camera->transform.lock()->translate(motion);
+            perspective.look_at += motion;
+            camera->transform_.lock()->translate(motion);
         }
     }
 }

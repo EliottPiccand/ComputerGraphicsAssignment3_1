@@ -1,6 +1,6 @@
 #pragma once
 
-#include <glm/glm.hpp>
+#include <Lib/glm.h>
 
 #include "Components/Component.h"
 
@@ -9,22 +9,22 @@ namespace component
 
 class Transform : public Component
 {
-  private:
-    glm::vec3 position;
-    glm::vec3 rotation;
-    glm::vec3 scale;
-
   public:
     Transform(const glm::vec3 &position, const glm::vec3 &rotation, const glm::vec3 &scale);
     Transform(const glm::vec3 &position, const glm::vec3 &rotation);
     Transform(const glm::vec3 &position);
     Transform();
 
-    glm::mat4 resolve() const;
+    [[nodiscard]] glm::mat4 resolve() const;
 
     void translate(const glm::vec3 &by);
 
     bool render() const override;
+
+  private:
+    glm::vec3 position_;
+    glm::vec3 rotation_;
+    glm::vec3 scale_;
 };
 
 } // namespace component

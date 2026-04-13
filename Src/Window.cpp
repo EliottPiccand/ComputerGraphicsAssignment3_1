@@ -3,33 +3,35 @@
 #include <cassert>
 #include <cstddef>
 #include <format>
+#include <span>
 #include <stdexcept>
 
 #include "Events/EventQueue.h"
 #include "Events/WindowResized.h"
 #include "Utils/Profiling.h"
 
-static void glfwErrorCallback(int code, const char *description)
+[[noreturn]] static void glfwErrorCallback(int code, const char *description)
 {
     const std::string message = std::format("GLFW error ({}) : {}", code, description);
     throw std::runtime_error(message);
 }
 
-Window::Window() : isFullScreen(false)
+Window::Window() : is_full_screen_(false)
 {
     glfwSetErrorCallback(glfwErrorCallback);
     glfwInit();
 
-    handle = glfwCreateWindow(static_cast<int>(DEFAULT_WIDTH), static_cast<int>(DEFAULT_HEIGHT), DEFAULT_TITLE, nullptr,
-                              nullptr);
-    glfwMakeContextCurrent(handle);
+    handle_ = glfwCreateWindow(static_cast<int>(DEFAULT_WIDTH), static_cast<int>(DEFAULT_HEIGHT), DEFAULT_TITLE,
+                               nullptr, nullptr);
+    glfwMakeContextCurrent(handle_);
 
     glewInit();
     SetGpuProfilingContext;
 
     glfwSwapInterval(1); // vsync
 
-    glfwSetFramebufferSizeCallback(handle, [](GLFWwindow *window, int width, int height) {
+    glfwSetFramebufferSizeCallback(handle_, [](GLFWwindow *window, int width, int height) {
+        (void)window;
         EventQueue::post<event::WindowResized>(static_cast<uint32_t>(width), static_cast<uint32_t>(height));
     });
 }
@@ -41,62 +43,69 @@ Window::~Window()
 
 bool Window::shouldClose() const
 {
-    return glfwWindowShouldClose(handle) == GLFW_TRUE;
+    return glfwWindowShouldClose(handle_) == GLFW_TRUE;
 }
 
 void Window::endFrame() const
 {
     ProfileScope;
 
-    glfwSwapBuffers(handle);
+    glfwSwapBuffers(handle_);
     CollectGpuProfilingEvents;
     glfwPollEvents();
 }
 
-void Window::captureMouse() {
-    glfwSetInputMode(handle, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+void Window::captureMouse()
+{
+    glfwSetInputMode(handle_, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 }
 
-void Window::releaseMouse() {
-    glfwSetInputMode(handle, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+void Window::releaseMouse()
+{
+    glfwSetInputMode(handle_, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 }
 
 void Window::setTitle(std::string title) const
 {
-    glfwSetWindowTitle(handle, title.c_str());
+    glfwSetWindowTitle(handle_, title.c_str());
 }
 
 std::pair<uint32_t, uint32_t> Window::getFramebufferSize() const
 {
     int width = 0;
     int height = 0;
-    glfwGetFramebufferSize(handle, &width, &height);
+    glfwGetFramebufferSize(handle_, &width, &height);
     return {static_cast<uint32_t>(width), static_cast<uint32_t>(height)};
 }
 
-void Window::toggleFullscreen()
+void Window::toggleFullScreen()
 {
-    isFullScreen = !isFullScreen;
+    is_full_screen_ = !is_full_screen_;
 
-    if (isFullScreen)
+    if (is_full_screen_)
     {
         // get current monitor
         GLFWmonitor *currentMonitor = nullptr;
 
         int currentWindowX, currentWindowY;
-        glfwGetWindowPos(handle, &currentWindowX, &currentWindowY);
+        glfwGetWindowPos(handle_, &currentWindowX, &currentWindowY);
 
         int count;
-        GLFWmonitor **monitors = glfwGetMonitors(&count);
-        for (size_t i = 0; i < count; i++)
+        GLFWmonitor **monitorsPtr = glfwGetMonitors(&count);
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunsafe-buffer-usage-in-container"
+        const std::span<GLFWmonitor *> monitors(monitorsPtr, static_cast<size_t>(count));
+#pragma clang diagnostic pop
+
+        for (const auto &monitor : monitors)
         {
             int monitorX, monitorY, width, height;
-            glfwGetMonitorWorkarea(monitors[i], &monitorX, &monitorY, &width, &height);
+            glfwGetMonitorWorkarea(monitor, &monitorX, &monitorY, &width, &height);
 
             if ((monitorX <= currentWindowX && currentWindowX < monitorX + width) &&
                 (monitorY <= currentWindowY && currentWindowY < monitorY + height))
             {
-                currentMonitor = monitors[i];
+                currentMonitor = monitor;
                 break;
             }
         }
@@ -105,27 +114,28 @@ void Window::toggleFullscreen()
 
         // save current state
         int width, height;
-        glfwGetWindowSize(handle, &width, &height);
+        glfwGetWindowSize(handle_, &width, &height);
 
-        nonFullscreenPositionX = currentWindowX;
-        nonFullscreenPositionY = currentWindowY;
-        nonFullscreenWidth = width;
-        nonFullscreenHeight = height;
+        non_full_screen_position_x_ = currentWindowX;
+        non_full_screen_position_y_ = currentWindowY;
+        non_full_screen_width_ = width;
+        non_full_screen_height_ = height;
 
         // set fullscreen
         const GLFWvidmode *videoMode = glfwGetVideoMode(currentMonitor);
         assert(videoMode != nullptr && "failed to retrieve current video mode");
 
-        glfwSetWindowMonitor(handle, currentMonitor, 0, 0, videoMode->width, videoMode->height, videoMode->refreshRate);
+        glfwSetWindowMonitor(handle_, currentMonitor, 0, 0, videoMode->width, videoMode->height,
+                             videoMode->refreshRate);
     }
     else
     {
-        glfwSetWindowMonitor(handle, nullptr, nonFullscreenPositionX, nonFullscreenPositionY, nonFullscreenWidth,
-                             nonFullscreenHeight, GLFW_DONT_CARE);
+        glfwSetWindowMonitor(handle_, nullptr, non_full_screen_position_x_, non_full_screen_position_x_,
+                             non_full_screen_width_, non_full_screen_height_, GLFW_DONT_CARE);
     }
 }
 
 void Window::close()
 {
-    glfwSetWindowShouldClose(handle, GLFW_TRUE);
+    glfwSetWindowShouldClose(handle_, GLFW_TRUE);
 }

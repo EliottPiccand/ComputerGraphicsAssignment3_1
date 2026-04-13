@@ -2,23 +2,23 @@
 
 void EventQueue::processAll()
 {
-    for (const auto &eventPtr : events)
+    for (const auto &raw_event : events_)
     {
-        if (!eventPtr)
+        if (raw_event == nullptr)
             continue;
 
-        const event::Event &ref = *eventPtr;
-        const std::type_index eventTypeId = typeid(ref);
+        const event::Event &event = *raw_event;
+        const std::type_index event_type_id = typeid(event);
 
-        const auto it = callbacks.find(eventTypeId);
-        if (it == callbacks.end())
+        const auto it = callbacks_.find(event_type_id);
+        if (it == callbacks_.end())
             continue;
 
         for (const auto &wrapper : it->second)
         {
-            wrapper(*eventPtr);
+            wrapper(event);
         }
     }
 
-    events.clear();
+    events_.clear();
 }

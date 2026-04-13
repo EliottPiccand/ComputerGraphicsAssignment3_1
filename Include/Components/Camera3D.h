@@ -4,7 +4,7 @@
 #include <memory>
 #include <variant>
 
-#include <glm/glm.hpp>
+#include <Lib/glm.h>
 
 #include "Components/Component.h"
 #include "Components/Transform.h"
@@ -19,28 +19,29 @@ class Camera3D : public Component
   public:
     struct Perspective
     {
-        float fov;
-        float near;
-        float far;
-        glm::vec3 lookAt;
+        double fov;
+        double near;
+        double far;
+        glm::vec3 look_at;
     };
 
-  private:
-    float aspectRatio;
-    std::variant<Perspective> data;
-
-    std::weak_ptr<component::Transform> transform;
-    friend FreeViewControls;
-
-    glm::vec3 getPosition() const;
-
-  public:
     Camera3D(Perspective perspective);
 
     void initialize() override;
 
-    void onViewportResize(uint32_t width, uint32_t height);
+    static void onViewportResize(uint32_t width, uint32_t height);
     void bind() const;
+
+  private:
+    static inline bool static_initialized_ = false;
+    static inline double aspect_ratio_;
+
+    std::variant<Perspective> data_;
+
+    std::weak_ptr<component::Transform> transform_;
+    friend FreeViewControls;
+
+    [[nodiscard]] glm::vec3 getPosition() const;
 };
 
 } // namespace component

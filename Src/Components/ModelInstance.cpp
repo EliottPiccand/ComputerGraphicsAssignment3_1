@@ -6,7 +6,7 @@
 
 using namespace component;
 
-ModelInstance::ModelInstance(std::shared_ptr<asset::Model> model) : model(model)
+ModelInstance::ModelInstance(std::shared_ptr<asset::Model> model) : model_(model)
 {
 }
 
@@ -15,7 +15,7 @@ bool ModelInstance::render() const
     ProfileScope;
     ProfileScopeGPU("ModelInstance::render");
 
-    model->draw();
+    model_->draw();
 
     return false;
 }

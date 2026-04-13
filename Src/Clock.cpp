@@ -2,26 +2,26 @@
 
 #include <chrono>
 
-Clock::Clock() : lastFrame(now()), frameTimeSum(0)
+Clock::Clock() : last_frame_(now()), frame_time_sum_(0)
 {
 }
 
 float Clock::tick()
 {
-    const Duration elapsed = now() - lastFrame;
+    const Duration elapsed = now() - last_frame_;
 
-    frameCount += 1;
-    frameTimeSum += elapsed;
+    frame_count_ += 1;
+    frame_time_sum_ += elapsed;
 
-    lastFrame = now();
+    last_frame_ = now();
 
     return std::chrono::duration<float>(elapsed).count();
 }
 
-const float Clock::getFps()
+float Clock::getFps()
 {
-    const float fps = static_cast<float>(frameCount) / std::chrono::duration<float>(frameTimeSum).count();
-    frameCount = 0;
-    frameTimeSum = Duration(0);
+    const float fps = static_cast<float>(frame_count_) / std::chrono::duration<float>(frame_time_sum_).count();
+    frame_count_ = 0;
+    frame_time_sum_ = Duration(0);
     return fps;
 }

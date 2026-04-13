@@ -3,13 +3,15 @@
 #include <exception>
 #endif
 
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#pragma region libs
+
 #define STB_IMAGE_IMPLEMENTATION
-#include <stb/stb_image.h>
+#include <Lib/stb.h>
+
 #define TINYGLTF3_IMPLEMENTATION
-#include <tinygltf/tiny_gltf_v3.h>
-#pragma clang diagnostic pop
+#include <Lib/tiny_gltf.h>
+
+#pragma endregion libs
 
 #include "Application.h"
 #include "Utils/Log.h"

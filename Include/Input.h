@@ -2,9 +2,9 @@
 
 #include <unordered_map>
 
-#include <GL/glew.h>
-#include <GLFW/glfw3.h>
-#include <glm/glm.hpp>
+#include <Lib/OpenGL.h>
+#include <Lib/glfw.h>
+#include <Lib/glm.h>
 
 #include "Window.h"
 
@@ -38,18 +38,6 @@ class Input
         HeldReleased,
     };
 
-  private:
-    static inline GLFWwindow *window_handle = nullptr;
-    static inline std::unordered_map<Action, unsigned int> binds;
-    static inline std::unordered_map<Action, State> states;
-
-    static inline glm::vec2 lastMousePosition;
-    static inline glm::vec2 mousePosition;
-    static inline glm::vec2 mouseDelta;
-
-    static glm::vec2 fetchMousePosition();
-
-  public:
     static void initialize(const Window &window);
 
     static void bindKey(Action action, unsigned int key);
@@ -60,4 +48,15 @@ class Input
     [[nodiscard]] static bool isPressed(Action action);
     [[nodiscard]] static glm::vec2 getMousePosition();
     [[nodiscard]] static glm::vec2 getMouseDelta();
+
+  private:
+    static inline GLFWwindow *window_handle_ = nullptr;
+    static inline std::unordered_map<Action, unsigned int> binds_;
+    static inline std::unordered_map<Action, State> states_;
+
+    static inline glm::vec2 last_mouse_position_;
+    static inline glm::vec2 mouse_position_;
+    static inline glm::vec2 mouse_delta_;
+
+    [[nodiscard]] static glm::vec2 fetchMousePosition();
 };

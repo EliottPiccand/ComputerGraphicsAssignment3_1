@@ -2,39 +2,39 @@
 
 #include <cassert>
 
-#include <GL/glew.h>
+#include <Lib/OpenGL.h>
 
-GameObject::GameObject() : id(nextId)
+GameObject::GameObject() : id_(next_id_)
 {
-    nextId += 1;
+    next_id_ += 1;
 }
 
 GameObjectId GameObject::getId() const
 {
-    return id;
+    return id_;
 }
 
 std::shared_ptr<GameObject> GameObject::addChild()
 {
     auto child = std::make_shared<GameObject>();
-    child->parent = std::optional(shared_from_this());
-    children.push_back(child);
+    child->parent_ = std::optional(shared_from_this());
+    children_.push_back(child);
     return child;
 }
 
 std::optional<std::shared_ptr<GameObject>> GameObject::getParent() const
 {
-    return parent.has_value() ? std::optional(parent->lock()) : std::nullopt;
+    return parent_.has_value() ? std::optional(parent_->lock()) : std::nullopt;
 }
 
 std::optional<std::shared_ptr<GameObject>> GameObject::getGameObject(GameObjectId id)
 {
-    if (id == this->id)
+    if (id == id_)
     {
         return std::optional(shared_from_this());
     }
 
-    for (auto &child : children)
+    for (auto &child : children_)
     {
         auto obj = child->getGameObject(id);
         if (obj.has_value())
@@ -48,65 +48,65 @@ std::optional<std::shared_ptr<GameObject>> GameObject::getGameObject(GameObjectI
 
 void GameObject::detach()
 {
-    std::vector<std::shared_ptr<GameObject>> localChildren;
-    localChildren.swap(children);
+    std::vector<std::shared_ptr<GameObject>> local_children;
+    local_children.swap(children_);
 
-    for (auto &child : localChildren)
+    for (auto &child : local_children)
     {
         child->detach();
     }
 
-    if (parent.has_value())
+    if (parent_.has_value())
     {
-        auto &siblings = parent->lock()->children;
+        auto &siblings = parent_->lock()->children_;
         
-        const auto it = std::find_if(siblings.begin(), siblings.end(), [&](auto o) { return o->id == id; });
+        const auto it = std::find_if(siblings.begin(), siblings.end(), [&](auto o) { return o->id_ == id_; });
         if (it != siblings.end())
         {
             siblings.erase(it);
         }
 
-        parent = std::nullopt;
+        parent_ = std::nullopt;
     }
 }
 
 void GameObject::initialize()
 {
-    if (initialized)
+    if (initialized_)
     {
         return;
     }
 
-    for (auto &component : components)
+    for (auto &component : components_)
     {
         component->initialize();
     }
 
-    for (auto &child : children)
+    for (auto &child : children_)
     {
         child->initialize();
     }
 
-    initialized = true;
+    initialized_ = true;
 }
 
-void GameObject::update(float deltaTime)
+void GameObject::update(float delta_time)
 {
     if (!active)
     {
         return;
     }
 
-    assert(initialized && "GameObject::update called while uninitialized");
+    assert(initialized_ && "GameObject::update called while uninitialized");
 
-    for (auto &child : children)
+    for (auto &child : children_)
     {
-        child->update(deltaTime);
+        child->update(delta_time);
     }
 
-    for (auto &component : components)
+    for (auto &component : components_)
     {
-        component->update(deltaTime);
+        component->update(delta_time);
     }
 }
 
@@ -117,26 +117,26 @@ void GameObject::render() const
         return;
     }
 
-    assert(initialized && "GameObject::render called while uninitialized");
+    assert(initialized_ && "GameObject::render called while uninitialized");
 
-    size_t matricesToPop = 0;
+    size_t matrices_to_pop = 0;
 
-    for (const auto &component : components)
+    for (const auto &component : components_)
     {
         if (component->render())
         {
-            matricesToPop += 1;
+            matrices_to_pop += 1;
         }
     }
 
-    for (const auto &child : children)
+    for (const auto &child : children_)
     {
         child->render();
     }
 
-    while (matricesToPop > 0)
+    while (matrices_to_pop > 0)
     {
         glPopMatrix();
-        matricesToPop -= 1;
+        matrices_to_pop -= 1;
     }
 }

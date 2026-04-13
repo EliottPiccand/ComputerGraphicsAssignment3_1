@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.20)
+cmake_minimum_required(VERSION 3.30)
 
 set(PROJECT_NAME ComputerGraphics)
 project(${PROJECT_NAME} LANGUAGES CXX VERSION 0.1.0)
@@ -12,9 +12,35 @@ set(EXECUTABLE_NAME main)
 file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/Src/*.cpp)
 add_executable(${EXECUTABLE_NAME} ${SOURCES})
 
+target_compile_options(${EXECUTABLE_NAME} PRIVATE
+  # -Wall                         # Common warnings
+  # -Wextra                       # Extra warnings
+  # -Wpedantic                    # Strict ISO C++ conformance
+  # -Wconversion                  # Implicit conversions that may lose data
+  # -Wsign-conversion             # Signed/unsigned mismatches
+  # -Wold-style-cast              # C-style casts
+  # -Wcast-align                  # Pointer alignment issues
+  # -Wimplicit-float-conversion   # Float precision loss
+  # -Wshadow                      # Variable shadowing
+  # -Wunused                      # Unused variables/parameters
+  # -Wabstract-vbase-init
+  -Weverything
+  -Wno-c++98-compat
+  -Wno-c++98-compat-pedantic
+  -Wno-padded
+  -Wno-unique-object-duplication
+  -Wno-unused-macros
+  -Wno-switch-default
+  -Wno-global-constructors
+  -Wno-exit-time-destructors
+  -Werror                       # Treat all warnings as errors
+  -fsafe-buffer-usage-suggestions
+  -O3
+)
+
 target_include_directories(${EXECUTABLE_NAME} PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/Include
-    ${CMAKE_CURRENT_SOURCE_DIR}/Lib
+  ${CMAKE_CURRENT_SOURCE_DIR}/Include
+  ${CMAKE_CURRENT_SOURCE_DIR}/Lib
 )
 
 file(GLOB LIBS ${CMAKE_CURRENT_SOURCE_DIR}/Lib/*.lib)
@@ -23,10 +49,9 @@ target_link_libraries(${EXECUTABLE_NAME} PRIVATE ${LIBS})
 find_package(OpenGL REQUIRED)
 target_link_libraries(${EXECUTABLE_NAME} PRIVATE OpenGL::GL OpenGL::GLU)
 
-target_compile_definitions(${EXECUTABLE_NAME}
-  PUBLIC
-    GLM_ENABLE_EXPERIMENTAL
-    NLOHMANN_JSON_NO_LITERAL_OPERATOR
+target_compile_definitions(${EXECUTABLE_NAME} PUBLIC
+  GLM_ENABLE_EXPERIMENTAL
+#  NLOHMANN_JSON_NO_LITERAL_OPERATOR
 )
 
 target_compile_definitions(${EXECUTABLE_NAME} PRIVATE

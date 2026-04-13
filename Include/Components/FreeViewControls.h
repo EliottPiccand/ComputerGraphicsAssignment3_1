@@ -12,7 +12,7 @@ class FreeViewControls : public Component
 
     FreeViewControls();
 
-    void update(float deltaTime) override;
+    void update(float delta_time) override;
 };
 
 } // namespace component

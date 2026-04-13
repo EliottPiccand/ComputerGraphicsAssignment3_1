@@ -9,23 +9,23 @@
 
 class Application
 {
-  private:
-    Clock clock;
-
-    std::unique_ptr<Window> window;
-
-    std::shared_ptr<GameObject> sceneRoot;
-
-    std::weak_ptr<component::FreeViewControls> freeViewControls;
-
-    void initializeOpenGL();
-
-    void update(float deltaTime);
-    void render() const;
-
-    void restart();
-
   public:
     Application();
     void run();
+
+  private:
+    Clock clock_;
+
+    std::unique_ptr<Window> window_;
+
+    std::shared_ptr<GameObject> scene_root_;
+
+    std::weak_ptr<component::FreeViewControls> free_view_controls_;
+
+    void initializeOpenGL();
+
+    void update(float delta_time);
+    void render() const;
+
+    void restart();
 };

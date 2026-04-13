@@ -2,6 +2,6 @@
 
 using namespace event;
 
-WindowResized::WindowResized(uint32_t width, uint32_t height) : width(width), height(height)
+WindowResized::WindowResized(uint32_t w, uint32_t h) : width(w), height(h)
 {
 }

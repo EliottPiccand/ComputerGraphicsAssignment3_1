@@ -1,6 +1,6 @@
 #include "Application.h"
 
-#include <GLFW/glfw3.h>
+#include <Lib/OpenGL.h>
 
 #include "Assets/AssetLoader.h"
 #include "Assets/Model.h"
@@ -24,11 +24,11 @@ Application::Application()
     ProfileScope;
 
     Random::initialize();
-    window = std::make_unique<Window>();
+    window_ = std::make_unique<Window>();
 
     initializeOpenGL();
 
-    Input::initialize(*window);
+    Input::initialize(*window_);
     Input::bindKey(Input::Action::ToggleFullScreen, GLFW_KEY_F11);
     Input::bindMouseButton(Input::Action::UIClick, GLFW_MOUSE_BUTTON_1);
     Input::bindKey(Input::Action::ToggleFreeView, GLFW_KEY_ENTER);
@@ -41,39 +41,39 @@ Application::Application()
         glViewport(0, 0, static_cast<GLsizei>(event.width), static_cast<GLsizei>(event.height));
     });
 
-    sceneRoot = std::make_shared<GameObject>();
-    sceneRoot->addComponent<component::Transform>();
+    scene_root_ = std::make_shared<GameObject>();
+    scene_root_->addComponent<component::Transform>();
 
-    auto perspectiveCamera = sceneRoot->addChild();
-    perspectiveCamera->addComponent<component::Transform>(glm::vec3{5.0f, 5.0f, 5.0f});
-    Singleton::activeCamera = perspectiveCamera->addComponent<component::Camera3D>(component::Camera3D::Perspective{
-        .fov = 45.0f,
-        .near = 0.1f,
-        .far = 100.0f,
-        .lookAt = {0.0f, 0.0f, 0.0f},
+    auto perspective_camera = scene_root_->addChild();
+    perspective_camera->addComponent<component::Transform>(glm::vec3{5.0f, 5.0f, 5.0f});
+    Singleton::active_camera = perspective_camera->addComponent<component::Camera3D>(component::Camera3D::Perspective{
+        .fov = 45.0,
+        .near = 0.1,
+        .far = 100.0,
+        .look_at = {0.0f, 0.0f, 0.0f},
     });
-    freeViewControls = perspectiveCamera->addComponent<component::FreeViewControls>();
+    free_view_controls_ = perspective_camera->addComponent<component::FreeViewControls>();
  
-    auto sun = sceneRoot->addChild();
+    auto sun = scene_root_->addChild();
     sun->addComponent<component::Transform>(UP * 100.0f - NORTH * 30.0f);
     sun->addComponent<component::LightSource>(rgba(252, 231, 165, 1), rgb(255, 255, 255));
 
-    auto ship = sceneRoot->addChild();
+    auto ship = scene_root_->addChild();
     ship->addComponent<component::Transform>(    
         glm::vec3{},
         glm::vec3{glm::radians(90.0f), 0.0f, 0.0f}
     );
     ship->addComponent<component::ModelInstance>(AssetLoader::get<asset::Model>(SHIP_MODEL));
 
-    auto water = sceneRoot->addChild();
+    auto water = scene_root_->addChild();
     water->addComponent<component::Transform>(glm::vec3{}, glm::vec3{}, glm::vec3{100.0f, 100.0f, 1.0f});
     water->addComponent<component::Water>();
 
     restart();
 
-    sceneRoot->initialize();
+    scene_root_->initialize();
 
-    Singleton::gameLoaded = true;
+    Singleton::game_loaded = true;
 }
 
 void Application::initializeOpenGL()
@@ -100,24 +100,24 @@ void Application::initializeOpenGL()
 
 void Application::run()
 {
-    while (!window->shouldClose())
+    while (!window_->shouldClose())
     {
-        const float deltaTime = clock.tick();
-        if (deltaTime > 1.0f)
+        const float delta_time = clock_.tick();
+        if (delta_time > 1.0f)
         {
             continue;
         }
 
-        update(deltaTime);
+        update(delta_time);
         render();
 
-        window->endFrame();
+        window_->endFrame();
 
         ProfilingEndFrame;
     }
 }
 
-void Application::update(float deltaTime)
+void Application::update(float delta_time)
 {
     ProfileScope;
 
@@ -127,26 +127,26 @@ void Application::update(float deltaTime)
 
     if (Input::getState(Input::Action::ToggleFullScreen) == Input::State::JustReleased)
     {
-        window->toggleFullscreen();
+        window_->toggleFullScreen();
     }
     if (Input::getState(Input::Action::ToggleFreeView) == Input::State::JustReleased)
     {
-        auto &freeViewControlsEnabled = freeViewControls.lock()->active;
+        auto &free_view_controls_enabled = free_view_controls_.lock()->active;
 
-        freeViewControlsEnabled = !freeViewControlsEnabled;
-        if (freeViewControlsEnabled)
+        free_view_controls_enabled = !free_view_controls_enabled;
+        if (free_view_controls_enabled)
         {
-            window->captureMouse();
+            window_->captureMouse();
             LOG_INFO("free view mode enabled");
         }
         else
         {
-            window->releaseMouse();
+            window_->releaseMouse();
             LOG_INFO("free view mode disabled");
         }
     }
 
-    sceneRoot->update(deltaTime);
+    scene_root_->update(delta_time);
 }
 
 void Application::render() const
@@ -154,15 +154,15 @@ void Application::render() const
     ProfileScope;
 
     constexpr const auto SKY_COLOR = rgba(193, 234, 255, 1);
-    glClearColor(SKY_COLOR.r, SKY_COLOR.g, SKY_COLOR.b, SKY_COLOR.a);
+    glClearColor(_v4(SKY_COLOR));
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    Singleton::activeCamera.lock()->bind();
-    sceneRoot->render();
+    Singleton::active_camera.lock()->bind();
+    scene_root_->render();
 }
 
 void Application::restart()
 {
-    const auto [framebufferWidth, framebufferHeight] = window->getFramebufferSize();
-    EventQueue::post<event::WindowResized>(framebufferWidth, framebufferHeight);
+    const auto [framebuffer_width, framebuffer_height] = window_->getFramebufferSize();
+    EventQueue::post<event::WindowResized>(framebuffer_width, framebuffer_height);
 }

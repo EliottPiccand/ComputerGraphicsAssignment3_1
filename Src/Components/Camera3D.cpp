@@ -1,7 +1,6 @@
 #include "Components/Camera3D.h"
 
-#include <GL/glew.h>
-#include <GL/glu.h>
+#include <Lib/OpenGL.h>
 
 #include "Events/EventQueue.h"
 #include "Events/WindowResized.h"
@@ -11,24 +10,29 @@
 
 using namespace component;
 
-Camera3D::Camera3D(Perspective perspective) : data(perspective)
+Camera3D::Camera3D(Perspective perspective) : data_(perspective)
 {
-    EventQueue::registerCallback<event::WindowResized>(
-        [this](const event::WindowResized &event) { onViewportResize(event.width, event.height); });
+    if (!static_initialized_)
+    {
+        EventQueue::registerCallback<event::WindowResized>(
+            [](const event::WindowResized &event) { onViewportResize(event.width, event.height); });
+        static_initialized_ = true;
+    }
 }
 
 void Camera3D::initialize()
 {
-    GET_COMPONENT(Transform, transform, Camera3D);
+    GET_COMPONENT(Transform, transform_, Camera3D);
 }
 
 void Camera3D::onViewportResize(uint32_t width, uint32_t height)
 {
-    aspectRatio = static_cast<float>(width) / static_cast<float>(height);
+    aspect_ratio_ = static_cast<double>(width) / static_cast<double>(height);
 }
 
-glm::vec3 Camera3D::getPosition() const {
-    return glm::vec3(transform.lock()->resolve()[3]);
+glm::vec3 Camera3D::getPosition() const
+{
+    return glm::vec3(transform_.lock()->resolve()[3]);
 }
 
 void Camera3D::bind() const
@@ -38,19 +42,18 @@ void Camera3D::bind() const
 
     const auto eye = getPosition();
 
-    if (std::holds_alternative<Perspective>(data))
+    if (std::holds_alternative<Perspective>(data_))
     {
-        const auto &perspective = std::get<Perspective>(data);
+        const auto &perspective = std::get<Perspective>(data_);
 
         // Projection Matrix
         glMatrixMode(GL_PROJECTION);
         glLoadIdentity();
-        gluPerspective(perspective.fov, aspectRatio, perspective.near, perspective.far);
+        gluPerspective(perspective.fov, aspect_ratio_, perspective.near, perspective.far);
 
         // View Matrix
         glMatrixMode(GL_MODELVIEW);
         glLoadIdentity();
-        gluLookAt(eye.x, eye.y, eye.z, perspective.lookAt.x, perspective.lookAt.y, perspective.lookAt.z, UP.x, UP.y,
-                  UP.z);
+        gluLookAt(_dv3(eye), _dv3(perspective.look_at), _dv3(UP));
     }
 }

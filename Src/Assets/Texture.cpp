@@ -2,21 +2,21 @@
 
 #include <stdexcept>
 
-#include <stb/stb_image.h>
+#include <Lib/stb.h>
 
 #include "Utils/Log.h"
 
 using namespace asset;
 
-Texture::Texture(GLuint id) : id(id)
+Texture::Texture(GLuint id) : id_(id)
 {
 }
 
 Texture::~Texture()
 {
-    if (id != 0)
+    if (id_ != 0)
     {
-        glDeleteTextures(1, &id);
+        glDeleteTextures(1, &id_);
     }
 }
 
@@ -31,27 +31,28 @@ std::shared_ptr<Texture> Texture::load(const std::filesystem::path &path)
         throw std::runtime_error("failed to load texture");
     }
 
-    GLint format;
-    switch (channels) {
-        case 1:
-            format = GL_RED;
-            break;
-        case 3:
-            format = GL_RGB;
-            break;
-        case 4:
-            format = GL_RGBA;
-            break;
-        default:
-            LOG_ERROR("failed to load texture from memory: invalid channel count {}", channels);
-            throw std::runtime_error("texture loading failed");
+    GLenum format;
+    switch (channels)
+    {
+    case 1:
+        format = GL_RED;
+        break;
+    case 3:
+        format = GL_RGB;
+        break;
+    case 4:
+        format = GL_RGBA;
+        break;
+    default:
+        LOG_ERROR("failed to load texture from memory: invalid channel count {}", channels);
+        throw std::runtime_error("texture loading failed");
     }
 
     GLuint id;
     glGenTextures(1, &id);
     glBindTexture(GL_TEXTURE_2D, id);
 
-    glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+    glTexImage2D(GL_TEXTURE_2D, 0, static_cast<GLint>(format), width, height, 0, format, GL_UNSIGNED_BYTE, data);
     glGenerateMipmap(GL_TEXTURE_2D);
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
@@ -69,7 +70,7 @@ std::shared_ptr<Texture> Texture::load(const std::filesystem::path &path)
 void Texture::bind(GLenum slot) const
 {
     glActiveTexture(slot);
-    glBindTexture(GL_TEXTURE_2D, id);
+    glBindTexture(GL_TEXTURE_2D, id_);
 }
 
 void Texture::unbind(GLenum slot) const

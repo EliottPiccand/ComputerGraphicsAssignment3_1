@@ -1,7 +1,7 @@
 #include "Utils/Path.h"
 
 #ifdef _WIN32
-#include <windows.h>
+#include <Windows.h>
 #elif defined(__linux__) || defined(__APPLE__)
 #include <stdexcept>
 
@@ -21,13 +21,13 @@ std::filesystem::path getExecutablePath()
     #elif defined(__linux__) || defined(__APPLE__)
 
     char buffer[PATH_MAX];
-    ssize_t len = readlink("/proc/self/exe", buffer, sizeof(buffer) - 1);
-    if (len != -1)
+    ssize_t length = readlink("/proc/self/exe", buffer, sizeof(buffer) - 1);
+    if (length != -1)
     {
         throw std::runtime_error("failed to get executable path");
     }
 
-    buffer[len] = '\0';
+    buffer[length] = '\0';
     return std::filesystem::path(buffer).parent_path();
 
     #else

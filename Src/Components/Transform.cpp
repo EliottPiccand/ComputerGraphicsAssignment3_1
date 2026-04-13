@@ -1,7 +1,7 @@
 #include "Components/Transform.h"
 
-#include <GL/glew.h>
-#include <glm/gtc/matrix_transform.hpp>
+#include <Lib/OpenGL.h>
+#include <Lib/glm.h>
 
 #include "GameObject.h"
 #include "Utils/Constants.h"
@@ -11,7 +11,7 @@
 using namespace component;
 
 Transform::Transform(const glm::vec3 &position, const glm::vec3 &rotation, const glm::vec3 &scale)
-    : position(position), rotation(rotation), scale(scale)
+    : position_(position), rotation_(rotation), scale_(scale)
 {
 }
 Transform::Transform(const glm::vec3 &position, const glm::vec3 &rotation)
@@ -30,7 +30,7 @@ glm::mat4 Transform::resolve() const
     ProfileScope;
 
     glm::mat4 transform;
-    const auto ownerParentOpt = owner.lock()->getParent();
+    const auto ownerParentOpt = owner_.lock()->getParent();
 
     if (ownerParentOpt.has_value())
     {
@@ -49,17 +49,17 @@ glm::mat4 Transform::resolve() const
         transform = glm::mat4(1.0f);
     }
 
-    transform = glm::translate(transform, position);
-    transform = glm::rotate(transform, rotation.x, X);
-    transform = glm::rotate(transform, rotation.y, Y);
-    transform = glm::rotate(transform, rotation.z, Z);
-    transform = glm::scale(transform, scale);
+    transform = glm::translate(transform, position_);
+    transform = glm::rotate(transform, rotation_.x, X);
+    transform = glm::rotate(transform, rotation_.y, Y);
+    transform = glm::rotate(transform, rotation_.z, Z);
+    transform = glm::scale(transform, scale_);
 
     return transform;
 }
 
 void Transform::translate(const glm::vec3 &by) {
-    position += by;
+    position_ += by;
 }
 
 bool Transform::render() const
@@ -70,11 +70,11 @@ bool Transform::render() const
     glMatrixMode(GL_MODELVIEW);
     glPushMatrix();
 
-    glTranslatef(position.x, position.y, position.z);
-    glRotatef(glm::degrees(rotation.x), X.x, X.y, X.z);
-    glRotatef(glm::degrees(rotation.y), Y.x, Y.y, Y.z);
-    glRotatef(glm::degrees(rotation.z), Z.x, Z.y, Z.z);
-    glScalef(scale.x, scale.y, scale.z);
+    glTranslatef(_v3(position_));
+    glRotatef(glm::degrees(rotation_.x), _v3(X));
+    glRotatef(glm::degrees(rotation_.y), _v3(Y));
+    glRotatef(glm::degrees(rotation_.z), _v3(Z));
+    glScalef(_v3(scale_));
 
     return true;
 }

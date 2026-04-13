@@ -6,33 +6,32 @@
 
 using namespace component;
 
-LightSource::LightSource(Color ambient, Color diffuse) : ambient(ambient), diffuse(diffuse)
+LightSource::LightSource(Color ambient, Color diffuse) : ambient_(ambient), diffuse_(diffuse)
 {
-    if (availableLights.empty())
+    if (available_lights_.empty())
     {
         throw std::runtime_error("no more light source are available");
     }
 
-    lightId = *availableLights.begin();
-    availableLights.erase(availableLights.begin());
+    light_id_ = *available_lights_.begin();
+    available_lights_.erase(available_lights_.begin());
 
-    glEnable(lightId);
+    glEnable(light_id_);
 }
 
 LightSource::~LightSource()
 {
-    glDisable(lightId);
-    availableLights.insert(lightId);
+    glDisable(light_id_);
+    available_lights_.insert(light_id_);
 }
 
 bool LightSource::render() const
 {
-    constexpr const GLfloat lightPosition[] = {0.0f, 0.0f, 0.0f, 1.0f};
+    constexpr const GLfloat light_position[] = {0.0f, 0.0f, 0.0f, 1.0f};
+    glLightfv(light_id_, GL_POSITION, light_position);
 
-    glLightfv(lightId, GL_POSITION, lightPosition);
-
-    glLightfv(lightId, GL_AMBIENT, reinterpret_cast<const GLfloat*>(&ambient));
-    glLightfv(lightId, GL_DIFFUSE, reinterpret_cast<const GLfloat*>(&diffuse));
+    glLightfv(light_id_, GL_AMBIENT, reinterpret_cast<const GLfloat*>(&ambient_));
+    glLightfv(light_id_, GL_DIFFUSE, reinterpret_cast<const GLfloat*>(&diffuse_));
 
     // other settings :
     // GL_SPECULAR

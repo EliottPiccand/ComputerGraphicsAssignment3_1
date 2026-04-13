@@ -2,4 +2,4 @@
 
 #include <filesystem>
 
-std::filesystem::path getExecutablePath();
+[[nodiscard]] std::filesystem::path getExecutablePath();
