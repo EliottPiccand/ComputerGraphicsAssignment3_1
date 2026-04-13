@@ -32,6 +32,7 @@ Application::Application()
     Input::bindKey(Input::Action::ToggleFullScreen, GLFW_KEY_F11);
     Input::bindMouseButton(Input::Action::UIClick, GLFW_MOUSE_BUTTON_1);
     Input::bindKey(Input::Action::ToggleFreeView, GLFW_KEY_ENTER);
+    Input::bindKey(Input::Action::CycleRenderingStyles, GLFW_KEY_R);
 
     // Load assets
     constexpr const std::string_view SHIP_MODEL = "Models/Ship/Ship.gltf";
@@ -53,16 +54,13 @@ Application::Application()
         .look_at = {0.0f, 0.0f, 0.0f},
     });
     free_view_controls_ = perspective_camera->addComponent<component::FreeViewControls>();
- 
+
     auto sun = scene_root_->addChild();
     sun->addComponent<component::Transform>(UP * 100.0f - NORTH * 30.0f);
     sun->addComponent<component::LightSource>(rgba(252, 231, 165, 1), rgb(255, 255, 255));
 
     auto ship = scene_root_->addChild();
-    ship->addComponent<component::Transform>(    
-        glm::vec3{},
-        glm::vec3{glm::radians(90.0f), 0.0f, 0.0f}
-    );
+    ship->addComponent<component::Transform>(glm::vec3{}, glm::vec3{glm::radians(90.0f), 0.0f, 0.0f});
     ship->addComponent<component::ModelInstance>(AssetLoader::get<asset::Model>(SHIP_MODEL));
 
     auto water = scene_root_->addChild();
@@ -78,6 +76,8 @@ Application::Application()
 
 void Application::initializeOpenGL()
 {
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
     // Transparency
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -143,6 +143,24 @@ void Application::update(float delta_time)
         {
             window_->releaseMouse();
             LOG_INFO("free view mode disabled");
+        }
+    }
+    if (Input::getState(Input::Action::CycleRenderingStyles) == Input::State::JustReleased)
+    {
+        switch (Singleton::rendering_style)
+        {
+        case RenderingStyle::OpaquePolygon: {
+            LOG_INFO("switched to wireframe rendering");
+            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+            Singleton::rendering_style = RenderingStyle::Wireframe;
+        }
+        break;
+        case RenderingStyle::Wireframe: {
+            LOG_INFO("switched to opaque polygon rendering");
+            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+            Singleton::rendering_style = RenderingStyle::OpaquePolygon;
+        }
+        break;
         }
     }
 
