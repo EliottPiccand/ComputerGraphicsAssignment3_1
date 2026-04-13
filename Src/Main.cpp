@@ -3,10 +3,13 @@
 #include <exception>
 #endif
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb/stb_image.h>
-#define TINYOBJLOADER_IMPLEMENTATION
-#include <tinyobjloader/tiny_obj_loader.h>
+#define TINYGLTF3_IMPLEMENTATION
+#include <tinygltf/tiny_gltf_v3.h>
+#pragma clang diagnostic pop
 
 #include "Application.h"
 #include "Utils/Log.h"

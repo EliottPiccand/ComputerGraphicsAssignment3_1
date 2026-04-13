@@ -2,7 +2,7 @@
 
 #include <filesystem>
 #include <memory>
-#include <string>
+#include <string_view>
 #include <unordered_map>
 #include <utility>
 
@@ -17,8 +17,8 @@ class AssetLoader
     static inline const std::filesystem::path ASSET_PATH = [] { return getExecutablePath() / "Assets"; }();
 
   public:
-    template <typename Asset, typename ...Args>
-    static std::shared_ptr<Asset> get(const std::string &path, Args&&... args)
+    template <typename Asset, typename... Args>
+    static std::shared_ptr<Asset> get(const std::string_view &path, Args &&...args)
     {
         std::filesystem::path full_path = ASSET_PATH / path;
 

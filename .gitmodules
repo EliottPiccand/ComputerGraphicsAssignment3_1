@@ -2,9 +2,9 @@
 path = Lib/tracy
 url = https://github.com/wolfpld/tracy
 
-[submodule "Lib/tinyobjloader"]
-path = Lib/tinyobjloader
-url = https://github.com/tinyobjloader/tinyobjloader
+[submodule "Lib/tinygltf"]
+path = Lib/tinygltf
+url = https://github.com/syoyo/tinygltf
 
 [submodule "Lib/stb"]
 path = Lib/stb

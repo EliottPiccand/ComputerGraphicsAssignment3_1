@@ -26,6 +26,7 @@ target_link_libraries(${EXECUTABLE_NAME} PRIVATE OpenGL::GL OpenGL::GLU)
 target_compile_definitions(${EXECUTABLE_NAME}
   PUBLIC
     GLM_ENABLE_EXPERIMENTAL
+    NLOHMANN_JSON_NO_LITERAL_OPERATOR
 )
 
 target_compile_definitions(${EXECUTABLE_NAME} PRIVATE

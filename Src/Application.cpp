@@ -3,10 +3,10 @@
 #include <GLFW/glfw3.h>
 
 #include "Assets/AssetLoader.h"
-#include "Assets/Mesh.h"
+#include "Assets/Model.h"
 #include "Components/Camera3D.h"
 #include "Components/LightSource.h"
-#include "Components/MeshInstance.h"
+#include "Components/ModelInstance.h"
 #include "Components/Transform.h"
 #include "Components/Water.h"
 #include "Events/EventQueue.h"
@@ -17,6 +17,7 @@
 #include "Utils/Constants.h"
 #include "Utils/Profiling.h"
 #include "Utils/Random.h"
+#include "glm/trigonometric.hpp"
 
 Application::Application()
 {
@@ -33,7 +34,8 @@ Application::Application()
     Input::bindKey(Input::Action::ToggleFreeView, GLFW_KEY_ENTER);
 
     // Load assets
-    AssetLoader::get<Mesh>("Models/Ship.obj");
+    constexpr const std::string_view SHIP_MODEL = "Models/Ship/Ship.gltf";
+    AssetLoader::get<asset::Model>(SHIP_MODEL);
 
     EventQueue::registerCallback<event::WindowResized>([](const event::WindowResized &event) {
         glViewport(0, 0, static_cast<GLsizei>(event.width), static_cast<GLsizei>(event.height));
@@ -57,8 +59,11 @@ Application::Application()
     sun->addComponent<component::LightSource>(rgba(252, 231, 165, 1), rgb(255, 255, 255));
 
     auto ship = sceneRoot->addChild();
-    ship->addComponent<component::Transform>(glm::vec3{0.0f, 0.0f, -0.8f});
-    ship->addComponent<component::MeshInstance>(AssetLoader::get<Mesh>("Models/Ship.obj"));
+    ship->addComponent<component::Transform>(    
+        glm::vec3{},
+        glm::vec3{glm::radians(90.0f), 0.0f, 0.0f}
+    );
+    ship->addComponent<component::ModelInstance>(AssetLoader::get<asset::Model>(SHIP_MODEL));
 
     auto water = sceneRoot->addChild();
     water->addComponent<component::Transform>(glm::vec3{}, glm::vec3{}, glm::vec3{100.0f, 100.0f, 1.0f});

@@ -2,19 +2,19 @@
 
 #include <memory>
 
-#include "Assets/Mesh.h"
+#include "Assets/Model.h"
 #include "Components/Component.h"
 
 namespace component
 {
 
-class MeshInstance : public Component
+class ModelInstance : public Component
 {
   private:
-    std::shared_ptr<Mesh> mesh;
+    std::shared_ptr<asset::Model> model;
 
   public:
-    MeshInstance(std::shared_ptr<Mesh> mesh);
+    ModelInstance(std::shared_ptr<asset::Model> model);
 
     bool render() const override;
 };
