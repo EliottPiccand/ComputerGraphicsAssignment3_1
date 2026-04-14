@@ -1,9 +1,13 @@
 #include "Application.h"
 
+#include <memory>
+#include <string_view>
+
 #include <Lib/OpenGL.h>
 
 #include "Assets/AssetLoader.h"
 #include "Assets/Model.h"
+#include "Assets/Texture.h"
 #include "Components/Camera3D.h"
 #include "Components/Collider.h"
 #include "Components/LightSource.h"
@@ -39,14 +43,33 @@ Application::Application()
     Input::bindKey(Input::Action::ArrowLeft, GLFW_KEY_LEFT);
     Input::bindKey(Input::Action::ArrowRight, GLFW_KEY_RIGHT);
 
-    // Load assets
-    constexpr const std::string_view SHIP_MODEL = "Models/Ship/Ship.gltf";
-    AssetLoader::get<asset::Model>(SHIP_MODEL);
-
     EventQueue::registerCallback<event::WindowResized>([](const event::WindowResized &event) {
         glViewport(0, 0, static_cast<GLsizei>(event.width), static_cast<GLsizei>(event.height));
     });
 
+    // Load assets
+    constexpr const std::string_view SHIP_MODEL = "Models/Ship/Ship.gltf";
+    constexpr const glm::vec3 SHIP_MODEL_DEFAULT_TRANSLATE = {0.5f, 1.0f, -0.25f};
+    constexpr const glm::vec3 SHIP_MODEL_DEFAULT_ROTATION = {glm::radians(90.0f), 0.0f, 0.0f};
+    constexpr const glm::vec3 SHIP_MODEL_DEFAULT_SCALE = 0.5f * glm::vec3{1.0f, 1.0f, 1.0f};
+    constexpr const component::Collider::AABB SHIP_MODEL_COLLIDER = {
+        .half_size = {6.0f, 12.0f, 3.0f},
+        .center = {0.0f, 0.0f, 3.0f},
+    };
+    AssetLoader::get<asset::Model>(SHIP_MODEL);
+
+    const asset::Model::TextureOverride PLAYER_SHIP_TEXTURE_OVERRIDE = {
+        {
+            0,
+            {
+                {asset::Texture::Type::Albedo,
+                 AssetLoader::get<asset::Texture>("Models/Ship/StylShip_SailsRope_AlbedoTransparency_Player.png")},
+                {asset::Texture::Type::Emissive, nullptr},
+            },
+        },
+    };
+
+    // Scene
     scene_root_ = std::make_shared<GameObject>();
     scene_root_->addComponent<component::Transform>();
 
@@ -76,23 +99,30 @@ Application::Application()
     sun->addComponent<component::LightSource>(rgba(252, 231, 165, 1), rgb(255, 255, 255));
 
     auto ship = scene_root_->addChild();
-    ship->addComponent<component::Transform>(glm::vec3{10.0f, 5.0f, 3.0f});
-    ship->addComponent<component::Collider>(component::Collider::AABB{
-        .half_size = {6.0f, 12.0f, 3.0f},
-        .center = {0.0f, 0.0f, 3.0f},
-    });
+    ship->addComponent<component::Transform>(NORTH * 10.0f);
+    ship->addComponent<component::Collider>(SHIP_MODEL_COLLIDER);
 
     auto ship_model = ship->addChild();
-    ship_model->addComponent<component::Transform>(
-        glm::vec3{0.5f, 1.0f, -0.25f}, glm::vec3{glm::radians(90.0f), 0.0f, 0.0f}, 0.5f * glm::vec3{1.0f, 1.0f, 1.0f});
-    ship_model->addComponent<component::ModelInstance>(AssetLoader::get<asset::Model>(SHIP_MODEL));
+    ship_model->addComponent<component::Transform>(SHIP_MODEL_DEFAULT_TRANSLATE, SHIP_MODEL_DEFAULT_ROTATION,
+                                                   SHIP_MODEL_DEFAULT_SCALE);
+    ship_model->addComponent<component::ModelInstance>(AssetLoader::get<asset::Model>(SHIP_MODEL),
+                                                       PLAYER_SHIP_TEXTURE_OVERRIDE);
+
+    // Enemy 1
+    auto enemy_ship_1 = scene_root_->addChild();
+    enemy_ship_1->addComponent<component::Transform>(NORTH * -10.0f);
+    enemy_ship_1->addComponent<component::Collider>(SHIP_MODEL_COLLIDER);
+
+    auto enemy_ship_1_model = enemy_ship_1->addChild();
+    enemy_ship_1_model->addComponent<component::Transform>(SHIP_MODEL_DEFAULT_TRANSLATE, SHIP_MODEL_DEFAULT_ROTATION,
+                                                           SHIP_MODEL_DEFAULT_SCALE);
+    enemy_ship_1_model->addComponent<component::ModelInstance>(AssetLoader::get<asset::Model>(SHIP_MODEL));
 
     auto water = scene_root_->addChild();
     water->addComponent<component::Transform>(glm::vec3{}, glm::vec3{}, glm::vec3{160.0f, 160.0f, 1.0f});
     water->addComponent<component::Water>();
 
     restart();
-
     scene_root_->initialize();
 
     Singleton::game_loaded = true;

@@ -4,7 +4,6 @@
 
 #include "Clock.h"
 #include "Components/Camera3D.h"
-#include "Components/Collider.h"
 #include "Components/FreeViewControls.h"
 #include "GameObject.h"
 #include "Window.h"

@@ -11,12 +11,13 @@ namespace component
 class ModelInstance : public Component
 {
   public:
-    ModelInstance(std::shared_ptr<asset::Model> model);
+    ModelInstance(std::shared_ptr<asset::Model> model, asset::Model::TextureOverride texture_override = {});
 
     bool render() const override;
 
   private:
     std::shared_ptr<asset::Model> model_;
+    asset::Model::TextureOverride texture_override_;
 };
 
 } // namespace component

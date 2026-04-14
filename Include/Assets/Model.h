@@ -20,12 +20,14 @@ class Model
     struct Mesh;
 
   public:
+    using TextureOverride = std::unordered_map<size_t, std::unordered_map<Texture::Type, std::shared_ptr<asset::Texture>>>;
+
     Model(GLuint vertex_array, GLuint vertex_buffer, std::vector<Mesh> meshes);
     ~Model();
 
     [[nodiscard]] static std::shared_ptr<Model> load(const std::filesystem::path &path);
 
-    void draw() const;
+    void draw(TextureOverride texture_override = {}) const;
 
   private:
     struct Material

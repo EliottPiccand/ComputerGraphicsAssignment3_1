@@ -11,6 +11,13 @@ namespace asset
 class Texture
 {
   public:
+    enum class Type {
+        Albedo,
+        MetallicSmoothness,
+        Normal,
+        Emissive,
+    };
+
     Texture(GLuint id);
     ~Texture();
 

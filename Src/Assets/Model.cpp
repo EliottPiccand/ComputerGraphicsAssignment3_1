@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <fstream>
 #include <functional>
+#include <ranges>
 #include <span>
 #include <stdexcept>
 #include <string_view>
@@ -11,6 +12,7 @@
 #include <Lib/tiny_gltf.h>
 
 #include "Assets/AssetLoader.h"
+#include "Assets/Texture.h"
 #include "Lib/OpenGL.h"
 #include "Utils/Log.h"
 #include "Utils/Profiling.h"
@@ -665,8 +667,10 @@ std::shared_ptr<Model> Model::load(const std::filesystem::path &path)
 #pragma clang diagnostic pop
 }
 
-void Model::draw() const
+void Model::draw(TextureOverride texture_override) const
 {
+    static const TextureOverride::mapped_type EMPTY_OVERRIDE = {};
+
     ProfileScope;
     ProfileScopeGPU("Model::draw");
 
@@ -675,15 +679,23 @@ void Model::draw() const
     glBindVertexArray(vertex_array_);
     glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer_);
 
-    for (const auto &mesh : meshes_)
+    for (const auto &&[i, mesh] : meshes_ | std::views::enumerate)
     {
         const auto &material = mesh.material;
+
+        const auto it = texture_override.find(static_cast<size_t>(i));
+        const auto &material_texture_override = it != texture_override.end() ? it->second : EMPTY_OVERRIDE;
 
         GLfloat ambient_color[] = {_v4(material.base_color)};
         glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, ambient_color);
         glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, ambient_color);
 
-        if (material.base_color_texture)
+        if (material_texture_override.contains(Texture::Type::Albedo))
+        {
+            material_texture_override.at(Texture::Type::Albedo)->bind(BASE_COLOR_TEXTURE_SLOT);
+            glEnable(GL_TEXTURE_2D);
+        }
+        else if (material.base_color_texture)
         {
             material.base_color_texture->bind(BASE_COLOR_TEXTURE_SLOT);
             glEnable(GL_TEXTURE_2D);
@@ -697,7 +709,11 @@ void Model::draw() const
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh.index_buffer);
         glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(mesh.index_count), GL_UNSIGNED_SHORT, nullptr);
 
-        if (material.base_color_texture)
+        if (material_texture_override.contains(Texture::Type::Albedo))
+        {
+            material_texture_override.at(Texture::Type::Albedo)->unbind(BASE_COLOR_TEXTURE_SLOT);
+        }
+        else if (material.base_color_texture)
         {
             material.base_color_texture->unbind(BASE_COLOR_TEXTURE_SLOT);
         }
