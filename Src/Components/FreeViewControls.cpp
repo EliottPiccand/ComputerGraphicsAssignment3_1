@@ -37,10 +37,8 @@ void FreeViewControls::update(float delta_time)
     const auto &camera = Singleton::active_camera.lock();
     if (std::holds_alternative<Camera3D::Perspective>(camera->data_))
     {
-        auto &perspective = std::get<Camera3D::Perspective>(camera->data_);
-
         const auto cameraPosition = camera->getPosition();
-        auto camera_direction = glm::normalize(perspective.look_at - cameraPosition);
+        auto camera_direction = glm::normalize(camera->look_at_ - cameraPosition);
         auto forward =
             glm::normalize(glm::dot(camera_direction, NORTH) * NORTH + glm::dot(camera_direction, EAST) * EAST);
         auto right = glm::cross(forward, UP);
@@ -52,7 +50,7 @@ void FreeViewControls::update(float delta_time)
             camera_direction = glm::rotate(camera_direction, mouse_delta.y * delta_time * VERTICAL_SENSITIVITY, right);
             camera_direction = glm::rotate(camera_direction, mouse_delta.x * delta_time * HORIZONTAL_SENSITIVITY, UP);
 
-            perspective.look_at = cameraPosition + camera_direction;
+            camera->look_at_ = cameraPosition + camera_direction;
 
             forward = glm::normalize(glm::dot(camera_direction, NORTH) * NORTH + glm::dot(camera_direction, EAST) * EAST);
             right = glm::cross(forward, UP);
@@ -96,7 +94,7 @@ void FreeViewControls::update(float delta_time)
         {
             motion *= SPEED * delta_time;
 
-            perspective.look_at += motion;
+            camera->look_at_ += motion;
             camera->transform_.lock()->translate(motion);
         }
     }

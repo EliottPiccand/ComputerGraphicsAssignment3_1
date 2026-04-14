@@ -29,6 +29,9 @@ class Input
         FreeViewDown,
         ToggleFreeView,
         CycleRenderingStyles,
+        ToggleDebugMode,
+        ArrowLeft,
+        ArrowRight,
     };
 
     enum class State

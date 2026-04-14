@@ -4,9 +4,7 @@
 #include <Lib/glm.h>
 
 #include "GameObject.h"
-#include "Utils/Constants.h"
 #include "Utils/Profiling.h"
-
 
 using namespace component;
 
@@ -50,16 +48,20 @@ glm::mat4 Transform::resolve() const
     }
 
     transform = glm::translate(transform, position_);
-    transform = glm::rotate(transform, rotation_.x, X);
-    transform = glm::rotate(transform, rotation_.y, Y);
-    transform = glm::rotate(transform, rotation_.z, Z);
+    transform = transform * glm::mat4_cast(rotation_);
     transform = glm::scale(transform, scale_);
 
     return transform;
 }
 
-void Transform::translate(const glm::vec3 &by) {
+void Transform::translate(const glm::vec3 &by)
+{
     position_ += by;
+}
+
+void Transform::rotate(const float angle, const glm::vec3 &axis)
+{
+    rotation_ = glm::angleAxis(angle, axis) * rotation_;
 }
 
 bool Transform::render() const
@@ -70,10 +72,10 @@ bool Transform::render() const
     glMatrixMode(GL_MODELVIEW);
     glPushMatrix();
 
+    glm::mat4 rotation_matrix = glm::mat4_cast(rotation_);
+
     glTranslatef(_v3(position_));
-    glRotatef(glm::degrees(rotation_.x), _v3(X));
-    glRotatef(glm::degrees(rotation_.y), _v3(Y));
-    glRotatef(glm::degrees(rotation_.z), _v3(Z));
+    glMultMatrixf(glm::value_ptr(rotation_matrix));
     glScalef(_v3(scale_));
 
     return true;

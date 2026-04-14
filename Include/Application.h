@@ -3,6 +3,8 @@
 #include <memory>
 
 #include "Clock.h"
+#include "Components/Camera3D.h"
+#include "Components/Collider.h"
 #include "Components/FreeViewControls.h"
 #include "GameObject.h"
 #include "Window.h"
@@ -20,6 +22,7 @@ class Application
 
     std::shared_ptr<GameObject> scene_root_;
 
+    std::weak_ptr<component::Camera3D> free_view_camera_;
     std::weak_ptr<component::FreeViewControls> free_view_controls_;
 
     void initializeOpenGL();

@@ -22,10 +22,18 @@ class Camera3D : public Component
         double fov;
         double near;
         double far;
-        glm::vec3 look_at;
     };
 
-    Camera3D(Perspective perspective);
+    struct Orthographic
+    {
+        double scale;
+        double near;
+        double far;
+    };
+    using Data = std::variant<Perspective, Orthographic>;
+
+    Camera3D(Perspective perspective, const glm::vec3 &look_at);
+    Camera3D(Orthographic orthographic, const glm::vec3 &look_at);
 
     void initialize() override;
 
@@ -36,10 +44,13 @@ class Camera3D : public Component
     static inline bool static_initialized_ = false;
     static inline double aspect_ratio_;
 
-    std::variant<Perspective> data_;
+    Data data_;
+    glm::vec3 look_at_;
 
     std::weak_ptr<component::Transform> transform_;
     friend FreeViewControls;
+
+    Camera3D(Data data, const glm::vec3 &look_at);
 
     [[nodiscard]] glm::vec3 getPosition() const;
 };
