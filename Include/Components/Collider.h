@@ -13,6 +13,8 @@ class Physics;
 namespace component
 {
 
+class RigidBody;
+
 class Collider : public Component
 {
   public:
@@ -35,6 +37,7 @@ class Collider : public Component
 
   private:
     friend Physics;
+    friend RigidBody;
 
     std::weak_ptr<Transform> transform_;
 

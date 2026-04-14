@@ -4,8 +4,13 @@
 
 using namespace component;
 
+RigidBody::RigidBody() : is_static_(true)
+{
+}
+
 RigidBody::RigidBody(float mass, glm::mat3 inertia)
-    : inverse_mass_(1.0f / mass), inverse_inertia_(glm::inverse(inertia))
+    : is_static_(false), mass_(mass), inverse_mass_(1.0f / mass), inverse_inertia_(glm::inverse(inertia)),
+      velocity_({}), angular_velocity_({})
 {
 }
 
@@ -17,16 +22,19 @@ void RigidBody::addForce(Force force)
 void RigidBody::initialize()
 {
     GET_COMPONENT(Collider, collider_, RigidBody);
+
+    const auto &transform = collider_.lock()->transform_.lock()->resolve();
+    position_ = glm::vec3(transform[3]);
 }
 
-void RigidBody::update(float delta_time)
+void RigidBody::updatePhysics(float delta_time)
 {
     glm::vec3 forces_sum{};
     glm::vec3 torques_sum{};
     for (const auto &force_callback : forces_)
     {
         const auto [force, application_point] =
-            force_callback(velocity_, position_, angular_velocity_, angular_position_);
+            force_callback(velocity_, position_, angular_velocity_, angular_position_, mass_);
         forces_sum += force;
         torques_sum += glm::cross(application_point, force);
     }

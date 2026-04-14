@@ -12,6 +12,7 @@
 #include "Components/Collider.h"
 #include "Components/LightSource.h"
 #include "Components/ModelInstance.h"
+#include "Components/RigidBody.h"
 #include "Components/Transform.h"
 #include "Components/Water.h"
 #include "Events/EventQueue.h"
@@ -101,6 +102,7 @@ Application::Application()
     auto ship = scene_root_->addChild();
     ship->addComponent<component::Transform>(NORTH * 10.0f);
     ship->addComponent<component::Collider>(SHIP_MODEL_COLLIDER);
+    Physics::addRigidBody(ship->addComponent<component::RigidBody>(10.0f, glm::mat3(1.0f)));
 
     auto ship_model = ship->addChild();
     ship_model->addComponent<component::Transform>(SHIP_MODEL_DEFAULT_TRANSLATE, SHIP_MODEL_DEFAULT_ROTATION,
@@ -120,6 +122,10 @@ Application::Application()
 
     auto water = scene_root_->addChild();
     water->addComponent<component::Transform>(glm::vec3{}, glm::vec3{}, glm::vec3{160.0f, 160.0f, 1.0f});
+    Physics::water_collider_ = water->addComponent<component::Collider>(component::Collider::AABB{
+        .half_size = {0.5f, 0.5f, 0.5f},
+        .center = {0.0f, 0.0f, -0.5f},
+    });
     water->addComponent<component::Water>();
 
     restart();
