@@ -24,7 +24,7 @@ if __name__ == "__main__":
 
     # Copy new assets
     for asset in scr_dir.rglob("*"):
-        if not asset.is_file():
+        if not asset.is_file() or asset.suffix == ".blend":
             continue
 
         dst_asset = dst_dir / asset.relative_to(scr_dir)

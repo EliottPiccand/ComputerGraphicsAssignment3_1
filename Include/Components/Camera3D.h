@@ -40,8 +40,14 @@ class Camera3D : public Component
     static void onViewportResize(uint32_t width, uint32_t height);
     void bind() const;
 
+    glm::vec3 screenToWorld(const glm::vec2 &screen_position) const;
+    glm::vec3 forward() const;
+
   private:
     static inline bool static_initialized_ = false;
+
+    static inline float viewport_width;
+    static inline float viewport_height;
     static inline double aspect_ratio_;
 
     Data data_;

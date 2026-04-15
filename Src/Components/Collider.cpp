@@ -131,10 +131,10 @@ bool Collider::render() const
             const auto v8 = glm::vec3( aabb.half_size.x, -aabb.half_size.y,  aabb.half_size.z) + aabb.center;
 
             constexpr const GLfloat material_ambient[] = {_v4(OBB_COLOR)};
-            constexpr const GLfloat matterial_diffuse[] = {_v4(OBB_COLOR)};
+            constexpr const GLfloat material_diffuse[] = {_v4(OBB_COLOR)};
 
             glMaterialfv(GL_FRONT, GL_AMBIENT, material_ambient);
-            glMaterialfv(GL_FRONT, GL_DIFFUSE, matterial_diffuse);
+            glMaterialfv(GL_FRONT, GL_DIFFUSE, material_diffuse);
 
             glLineWidth(LINE_WIDTH);
             glBegin(GL_LINES);
@@ -175,10 +175,10 @@ bool Collider::render() const
             const auto v8 = glm::vec3( aabb_.half_size.x, -aabb_.half_size.y,  aabb_.half_size.z) + aabb_.center;
 
             constexpr const GLfloat material_ambient[] = {_v4(AABB_COLOR)};
-            constexpr const GLfloat matterial_diffuse[] = {_v4(AABB_COLOR)};
+            constexpr const GLfloat material_diffuse[] = {_v4(AABB_COLOR)};
 
             glMaterialfv(GL_FRONT, GL_AMBIENT, material_ambient);
-            glMaterialfv(GL_FRONT, GL_DIFFUSE, matterial_diffuse);
+            glMaterialfv(GL_FRONT, GL_DIFFUSE, material_diffuse);
 
             glLineWidth(LINE_WIDTH);
             glBegin(GL_LINES);

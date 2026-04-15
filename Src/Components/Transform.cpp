@@ -4,6 +4,7 @@
 #include <Lib/glm.h>
 
 #include "GameObject.h"
+#include "Utils/Constants.h"
 #include "Utils/Profiling.h"
 
 using namespace component;
@@ -62,6 +63,16 @@ void Transform::translate(const glm::vec3 &by)
 void Transform::rotate(const float angle, const glm::vec3 &axis)
 {
     rotation_ = glm::angleAxis(angle, axis) * rotation_;
+}
+
+void Transform::setPosition(const glm::vec3 &position)
+{
+    position_ = position;
+}
+
+void Transform::pointToward(const glm::vec3 &direction)
+{
+    rotation_ = glm::quatLookAt(direction, UP);
 }
 
 bool Transform::render() const

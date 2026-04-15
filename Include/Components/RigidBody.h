@@ -9,6 +9,7 @@
 
 #include "Components/Collider.h"
 #include "Components/Component.h"
+#include "GameObject.h"
 
 class Physics;
 
@@ -18,24 +19,33 @@ namespace component
 class RigidBody : public Component
 {
   public:
+    using CollisionCallback = std::function<void(GameObjectId)>;
+
     /// return a force and an application point
     using Force = std::function<std::pair<glm::vec3, glm::vec3>(const glm::vec3 &velocity, const glm::vec3 &position,
                                                                 const glm::vec3 &angular_velocity,
                                                                 const glm::vec3 &angular_position, float mass)>;
 
     RigidBody();
+    RigidBody(float mass);
     RigidBody(float mass, glm::mat3 inertia);
 
     void addForce(Force force);
+    void addCollisionCallback(CollisionCallback callback);
+    void setVelocity(const glm::vec3 &velocity);
 
     void initialize() override;
+
     void updatePhysics(float delta_time);
 
   private:
     friend Physics;
     std::weak_ptr<Collider> collider_;
 
+    std::vector<CollisionCallback> collision_callbacks_;
+
     bool is_static_;
+    bool has_collisions_;
 
     float mass_;
     float inverse_mass_;

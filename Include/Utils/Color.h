@@ -13,5 +13,8 @@ namespace color
 
 constexpr const Color WHITE = rgb(255, 255, 255);
 constexpr const Color TRANSPARENT = rgba(0, 0, 0, 0);
+constexpr const Color RED = rgb(255, 0, 0);
+constexpr const Color GREEN = rgb(0, 255, 0);
+constexpr const Color BLUE = rgb(0, 0, 255);
 
 } // namespace color

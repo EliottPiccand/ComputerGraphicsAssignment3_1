@@ -9,6 +9,7 @@
 #include "Assets/Model.h"
 #include "Assets/Texture.h"
 #include "Components/Camera3D.h"
+#include "Components/CannonPlayerController.h"
 #include "Components/Collider.h"
 #include "Components/LightSource.h"
 #include "Components/ModelInstance.h"
@@ -16,15 +17,46 @@
 #include "Components/Transform.h"
 #include "Components/Water.h"
 #include "Events/EventQueue.h"
+#include "Events/Fire.h"
 #include "Events/WindowResized.h"
+#include "GameObject.h"
 #include "Input.h"
 #include "Physics.h"
 #include "Singleton.h"
 #include "Utils/Color.h"
 #include "Utils/Constants.h"
 #include "Utils/Log.h"
+#include "Utils/Math.h"
 #include "Utils/Profiling.h"
 #include "Utils/Random.h"
+#include "glm/ext/quaternion_geometric.hpp"
+
+#pragma region model_settings
+constexpr const std::string_view SHIP_MODEL = "Models/Ship/Ship.gltf";
+constexpr const glm::vec3 SHIP_MODEL_DEFAULT_TRANSLATE = {0.5f, 1.0f, -0.25f};
+constexpr const glm::vec3 SHIP_MODEL_DEFAULT_ROTATION = {glm::radians(90.0f), 0.0f, 0.0f};
+constexpr const glm::vec3 SHIP_MODEL_DEFAULT_SCALE = 0.5f * glm::vec3{1.0f, 1.0f, 1.0f};
+constexpr const component::Collider::AABB SHIP_MODEL_COLLIDER = {
+    .half_size = {6.0f, 12.0f, 3.0f},
+    .center = {0.0f, 0.0f, 3.0f},
+};
+
+constexpr const std::string_view CANNON_STAND_MODEL = "Models/CannonStand/CannonStand.gltf";
+constexpr const glm::vec3 CANNON_STAND_MODEl_DEFAULT_TRANSLATE = {};
+constexpr const glm::vec3 CANNON_STAND_MODEL_DEFAULT_ROTATION = {glm::radians(90.0f), 0.0f, 0.0f};
+
+constexpr const std::string_view CANNON_BARREL_MODEL = "Models/CannonBarrel/CannonBarrel.gltf";
+constexpr const glm::vec3 CANNON_BARREL_MODEl_DEFAULT_TRANSLATE = {};
+constexpr const glm::vec3 CANNON_BARREL_MODEL_DEFAULT_ROTATION = {glm::radians(8.0f), glm::radians(180.0f),
+                                                                  glm::radians(0.0f)};
+
+constexpr const std::string_view CANNONBALL_MODEL = "Models/CannonBall/CannonBall.gltf";
+constexpr const glm::vec3 CANNONBALL_MODEL_DEFAULT_TRANSLATE = {};
+constexpr const glm::vec3 CANNONBALL_MODEL_DEFAULT_ROTATION = {glm::radians(90.0f), 0.0f, 0.0f};
+constexpr const glm::vec3 CANNONBALL_MODEL_DEFAULT_SCALE = 0.4f * glm::vec3{1.0f, 1.0f, 1.0f};
+constexpr const float CANNONBALL_MASS = 10.0f;
+
+#pragma endregion model_settings
 
 Application::Application()
 {
@@ -41,24 +73,19 @@ Application::Application()
     Input::bindKey(Input::Action::ToggleFreeView, GLFW_KEY_ENTER);
     Input::bindKey(Input::Action::CycleRenderingStyles, GLFW_KEY_R);
     Input::bindKey(Input::Action::ToggleDebugMode, GLFW_KEY_F3);
-    Input::bindKey(Input::Action::ArrowLeft, GLFW_KEY_LEFT);
-    Input::bindKey(Input::Action::ArrowRight, GLFW_KEY_RIGHT);
+    Input::bindKey(Input::Action::DebugMoveTargetNorth, GLFW_KEY_UP);
+    Input::bindKey(Input::Action::DebugMoveTargetEast, GLFW_KEY_RIGHT);
+    Input::bindKey(Input::Action::DebugMoveTargetSouth, GLFW_KEY_DOWN);
+    Input::bindKey(Input::Action::DebugMoveTargetWest, GLFW_KEY_LEFT);
+    Input::bindKey(Input::Action::DebugAimAndFire, GLFW_KEY_F);
 
     EventQueue::registerCallback<event::WindowResized>([](const event::WindowResized &event) {
         glViewport(0, 0, static_cast<GLsizei>(event.width), static_cast<GLsizei>(event.height));
     });
 
     // Load assets
-    constexpr const std::string_view SHIP_MODEL = "Models/Ship/Ship.gltf";
-    constexpr const glm::vec3 SHIP_MODEL_DEFAULT_TRANSLATE = {0.5f, 1.0f, -0.25f};
-    constexpr const glm::vec3 SHIP_MODEL_DEFAULT_ROTATION = {glm::radians(90.0f), 0.0f, 0.0f};
-    constexpr const glm::vec3 SHIP_MODEL_DEFAULT_SCALE = 0.5f * glm::vec3{1.0f, 1.0f, 1.0f};
-    constexpr const component::Collider::AABB SHIP_MODEL_COLLIDER = {
-        .half_size = {6.0f, 12.0f, 3.0f},
-        .center = {0.0f, 0.0f, 3.0f},
-    };
-    AssetLoader::get<asset::Model>(SHIP_MODEL);
 
+    AssetLoader::get<asset::Model>(SHIP_MODEL);
     const asset::Model::TextureOverride PLAYER_SHIP_TEXTURE_OVERRIDE = {
         {
             0,
@@ -70,58 +97,100 @@ Application::Application()
         },
     };
 
+    AssetLoader::get<asset::Model>(CANNON_STAND_MODEL);
+    AssetLoader::get<asset::Model>(CANNON_BARREL_MODEL);
+    AssetLoader::get<asset::Model>(CANNONBALL_MODEL);
+
     // Scene
     scene_root_ = std::make_shared<GameObject>();
     scene_root_->addComponent<component::Transform>();
 
-    auto perspective_camera = scene_root_->addChild();
-    perspective_camera->addComponent<component::Transform>(glm::vec3{5.0f, 5.0f, 5.0f});
-    free_view_camera_ = perspective_camera->addComponent<component::Camera3D>(
-        component::Camera3D::Perspective{
-            .fov = 45.0,
-            .near = 0.1,
-            .far = 100.0,
-        },
-        glm::vec3{0.0f, 0.0f, 0.0f});
-    free_view_controls_ = perspective_camera->addComponent<component::FreeViewControls>();
+    // - Perspective Camera
+    {
+        auto perspective_camera = scene_root_->addChild();
+        perspective_camera->addComponent<component::Transform>(glm::vec3{5.0f, 5.0f, 5.0f});
+        free_view_camera_ = perspective_camera->addComponent<component::Camera3D>(
+            component::Camera3D::Perspective{
+                .fov = 45.0,
+                .near = 0.1,
+                .far = 100.0,
+            },
+            glm::vec3{0.0f, 0.0f, 0.0f});
+        free_view_controls_ = perspective_camera->addComponent<component::FreeViewControls>();
+    }
 
-    auto top_view_camera = scene_root_->addChild();
-    top_view_camera->addComponent<component::Transform>(UP * 80.0f - NORTH * 1.0f);
-    Singleton::main_camera = top_view_camera->addComponent<component::Camera3D>(
-        component::Camera3D::Orthographic{
-            .scale = 100,
-            .near = 10.0,
-            .far = 100.0,
-        },
-        glm::vec3{0.0f, 0.0f, 0.0f});
+    // Top View Camera
+    {
+        auto top_view_camera = scene_root_->addChild();
+        top_view_camera->addComponent<component::Transform>(UP * 80.0f - NORTH * 1.0f);
+        Singleton::main_camera = top_view_camera->addComponent<component::Camera3D>(
+            component::Camera3D::Orthographic{
+                .scale = 100,
+                .near = 10.0,
+                .far = 100.0,
+            },
+            glm::vec3{0.0f, 0.0f, 0.0f});
+    }
 
     auto sun = scene_root_->addChild();
     sun->addComponent<component::Transform>(UP * 100.0f - NORTH * 30.0f);
     sun->addComponent<component::LightSource>(rgba(252, 231, 165, 1), rgb(255, 255, 255));
 
-    auto ship = scene_root_->addChild();
-    ship->addComponent<component::Transform>(NORTH * 10.0f);
-    ship->addComponent<component::Collider>(SHIP_MODEL_COLLIDER);
-    Physics::addRigidBody(ship->addComponent<component::RigidBody>(10.0f, glm::mat3(1.0f)));
+    // Player Ship
+    {
+        auto ship = scene_root_->addChild();
+        ship->addComponent<component::Transform>(NORTH * 10.0f);
+        ship->addComponent<component::Collider>(SHIP_MODEL_COLLIDER);
+        // Physics::addRigidBody(ship->addComponent<component::RigidBody>(10.0f, glm::mat3(1.0f)));
 
-    auto ship_model = ship->addChild();
-    ship_model->addComponent<component::Transform>(SHIP_MODEL_DEFAULT_TRANSLATE, SHIP_MODEL_DEFAULT_ROTATION,
-                                                   SHIP_MODEL_DEFAULT_SCALE);
-    ship_model->addComponent<component::ModelInstance>(AssetLoader::get<asset::Model>(SHIP_MODEL),
-                                                       PLAYER_SHIP_TEXTURE_OVERRIDE);
+        auto ship_model = ship->addChild();
+        ship_model->addComponent<component::Transform>(SHIP_MODEL_DEFAULT_TRANSLATE, SHIP_MODEL_DEFAULT_ROTATION,
+                                                       SHIP_MODEL_DEFAULT_SCALE);
+        ship_model->addComponent<component::ModelInstance>(AssetLoader::get<asset::Model>(SHIP_MODEL),
+                                                           PLAYER_SHIP_TEXTURE_OVERRIDE);
 
-    // Enemy 1
-    auto enemy_ship_1 = scene_root_->addChild();
-    enemy_ship_1->addComponent<component::Transform>(NORTH * -10.0f);
-    enemy_ship_1->addComponent<component::Collider>(SHIP_MODEL_COLLIDER);
+        auto player_target = scene_root_->addChild();
+        auto player_target_transform = player_target->addComponent<component::Transform>();
+        player_target->addComponent<component::Collider>(component::Collider::AABB{
+            .half_size = {0.5f, 0.5f, 0.5f},
+            .center = {},
+        });
 
-    auto enemy_ship_1_model = enemy_ship_1->addChild();
-    enemy_ship_1_model->addComponent<component::Transform>(SHIP_MODEL_DEFAULT_TRANSLATE, SHIP_MODEL_DEFAULT_ROTATION,
-                                                           SHIP_MODEL_DEFAULT_SCALE);
-    enemy_ship_1_model->addComponent<component::ModelInstance>(AssetLoader::get<asset::Model>(SHIP_MODEL));
+        auto cannon = ship->addChild();
+        cannon->addComponent<component::Transform>(glm::vec3{0.0f, -8.5f, 4.5f});
+
+        auto cannon_stand_model = cannon->addChild();
+        cannon_stand_model->addComponent<component::Transform>(CANNON_STAND_MODEl_DEFAULT_TRANSLATE,
+                                                               CANNON_STAND_MODEL_DEFAULT_ROTATION);
+        cannon_stand_model->addComponent<component::ModelInstance>(AssetLoader::get<asset::Model>(CANNON_STAND_MODEL));
+
+        auto cannon_barrel = cannon->addChild();
+        auto cannon_barrel_transform = cannon_barrel->addComponent<component::Transform>();
+        cannon_barrel_transform->pointToward(EAST);
+
+        auto cannon_barrel_model = cannon_barrel->addChild();
+        cannon_barrel_model->addComponent<component::Transform>(CANNON_BARREL_MODEl_DEFAULT_TRANSLATE,
+                                                                CANNON_BARREL_MODEL_DEFAULT_ROTATION);
+        cannon_barrel_model->addComponent<component::ModelInstance>(
+            AssetLoader::get<asset::Model>(CANNON_BARREL_MODEL));
+
+        cannon->addComponent<component::CannonPlayerController>(cannon_barrel_transform, player_target_transform);
+    }
+
+    // Enemy 1 Ship
+    {
+        auto enemy_ship_1 = scene_root_->addChild();
+        enemy_ship_1->addComponent<component::Transform>(NORTH * -10.0f);
+        enemy_ship_1->addComponent<component::Collider>(SHIP_MODEL_COLLIDER);
+
+        auto enemy_ship_1_model = enemy_ship_1->addChild();
+        enemy_ship_1_model->addComponent<component::Transform>(SHIP_MODEL_DEFAULT_TRANSLATE,
+                                                               SHIP_MODEL_DEFAULT_ROTATION, SHIP_MODEL_DEFAULT_SCALE);
+        enemy_ship_1_model->addComponent<component::ModelInstance>(AssetLoader::get<asset::Model>(SHIP_MODEL));
+    }
 
     auto water = scene_root_->addChild();
-    water->addComponent<component::Transform>(glm::vec3{}, glm::vec3{}, glm::vec3{160.0f, 160.0f, 1.0f});
+    water->addComponent<component::Transform>(glm::vec3{}, glm::vec3{}, glm::vec3{WORLD_WIDTH, WORLD_WIDTH, 1.0f});
     Physics::water_collider_ = water->addComponent<component::Collider>(component::Collider::AABB{
         .half_size = {0.5f, 0.5f, 0.5f},
         .center = {0.0f, 0.0f, -0.5f},
@@ -133,6 +202,48 @@ Application::Application()
 
     Singleton::game_loaded = true;
     Singleton::active_camera = Singleton::main_camera;
+    Singleton::view = View::Top;
+
+    LOG_DEBUG("cannonballs initial velocity: {} m/s", INITIAL_CANNONBALL_VELOCITY);
+
+    const auto water_id = water->getId();
+    EventQueue::registerCallback<event::Fire>([this, water_id](const event::Fire &event) {
+        if (glm::length(event.initial_velocity) < EPSILON)
+        {
+            return;
+        }
+
+        LOG_DEBUG("fire {}", glm::length(event.initial_velocity));
+
+        auto cannonball = scene_root_->addChild();
+        std::weak_ptr<GameObject> weak_cannonball = cannonball;
+        cannonball->addComponent<component::Transform>(event.position)
+            ->pointToward(glm::normalize(event.initial_velocity));
+        cannonball->addComponent<component::Collider>(component::Collider::AABB{
+            .half_size = {0.5f, 0.5f, 0.5f},
+            .center = {},
+        });
+        auto rigid_body = cannonball->addComponent<component::RigidBody>(CANNONBALL_MASS);
+        rigid_body->addCollisionCallback([weak_cannonball, water_id](const GameObjectId id){
+            if (id == water_id)
+            {
+                LOG_DEBUG("cannonball hit water");
+                weak_cannonball.lock()->detach();
+            }
+            else
+            {
+                LOG_WARNING("cannonball collided with game object {} but nothing happend", id);
+            }
+        });
+        rigid_body->setVelocity(event.initial_velocity);
+
+        auto cannonball_model = cannonball->addChild();
+        cannonball_model->addComponent<component::Transform>(
+            CANNONBALL_MODEL_DEFAULT_TRANSLATE, CANNONBALL_MODEL_DEFAULT_ROTATION, CANNONBALL_MODEL_DEFAULT_SCALE);
+        cannonball->addComponent<component::ModelInstance>(AssetLoader::get<asset::Model>(CANNONBALL_MODEL));
+    
+        cannonball->initialize();
+    });
 }
 
 void Application::initializeOpenGL()
@@ -198,12 +309,14 @@ void Application::update(float delta_time)
         if (free_view_controls_enabled)
         {
             Singleton::active_camera = free_view_camera_;
+            Singleton::view = View::FreeCamera;
             window_->captureMouse();
             LOG_INFO("free view mode enabled");
         }
         else
         {
             Singleton::active_camera = Singleton::main_camera;
+            Singleton::view = View::Top;
             window_->releaseMouse();
             LOG_INFO("free view mode disabled");
         }

@@ -17,7 +17,7 @@ class Input
         SpeedDown,
         TurnLeft,
         TurnRight,
-        Fire,
+        AimAndFire,
         CancelFire,
         ToggleFullScreen,
         UIClick,
@@ -30,8 +30,11 @@ class Input
         ToggleFreeView,
         CycleRenderingStyles,
         ToggleDebugMode,
-        ArrowLeft,
-        ArrowRight,
+        DebugMoveTargetNorth,
+        DebugMoveTargetEast,
+        DebugMoveTargetSouth,
+        DebugMoveTargetWest,
+        DebugAimAndFire,
     };
 
     enum class State

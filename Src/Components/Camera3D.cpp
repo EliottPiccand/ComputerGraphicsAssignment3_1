@@ -1,8 +1,9 @@
 #include "Components/Camera3D.h"
 
-#include <Lib/OpenGL.h>
 #include <stdexcept>
 #include <variant>
+
+#include <Lib/OpenGL.h>
 
 #include "Events/EventQueue.h"
 #include "Events/WindowResized.h"
@@ -37,6 +38,8 @@ void Camera3D::initialize()
 
 void Camera3D::onViewportResize(uint32_t width, uint32_t height)
 {
+    viewport_width = static_cast<float>(width);
+    viewport_height = static_cast<float>(height);
     aspect_ratio_ = static_cast<double>(width) / static_cast<double>(height);
 }
 
@@ -84,4 +87,48 @@ void Camera3D::bind() const
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
     gluLookAt(_dv3(eye), _dv3(look_at_), _dv3(UP));
+}
+
+glm::vec3 Camera3D::screenToWorld(const glm::vec2 &screen_position) const
+{
+    glm::mat4 projection;
+    if (std::holds_alternative<Orthographic>(data_))
+    {
+        const auto &orthographic = std::get<Orthographic>(data_);
+
+        double left = -orthographic.scale * aspect_ratio_;
+        double right = orthographic.scale * aspect_ratio_;
+        double bottom = -orthographic.scale;
+        double top = orthographic.scale;
+
+        projection = glm::ortho(left, right, bottom, top, orthographic.near, orthographic.far);
+    }
+    else if (std::holds_alternative<Perspective>(data_))
+    {
+        const auto &perspective = std::get<Perspective>(data_);
+        projection = glm::perspective(glm::radians(perspective.fov), aspect_ratio_, perspective.near, perspective.far);
+    }
+    else
+    {
+        throw std::runtime_error("missing Camera3D::screenToWorld implementation for data alternative");
+    }
+
+    const auto eye = getPosition();
+    auto view = glm::lookAt(eye, look_at_, UP);
+
+    glm::vec4 screen_ndc_position = {
+        (2.0f * screen_position.x) / viewport_width - 1.0f,
+        1.0f - (2.0f * screen_position.y) / viewport_height,
+        -1.0f,
+        1.0f,
+    };
+
+    glm::vec4 world_point = glm::inverse(projection * view) * screen_ndc_position;
+    world_point /= world_point.w;
+    return world_point;
+}
+
+glm::vec3 Camera3D::forward() const
+{
+    return glm::normalize(look_at_ - getPosition());
 }

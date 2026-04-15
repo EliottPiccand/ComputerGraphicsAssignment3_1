@@ -1,8 +1,12 @@
 #include "Physics.h"
-#include "Utils/Constants.h"
 
+#include <optional>
 #include <ranges>
 #include <tuple>
+#include <vector>
+
+#include "GameObject.h"
+#include "Utils/Constants.h"
 
 void Physics::addRigidBody(std::weak_ptr<component::RigidBody> rigid_body)
 {
@@ -11,8 +15,6 @@ void Physics::addRigidBody(std::weak_ptr<component::RigidBody> rigid_body)
 
 void Physics::update(float delta_time)
 {
-    constexpr const float GRAVITY = 9.81f;
-
     const auto water_collider = water_collider_.lock();
     std::erase_if(rigid_bodys_, [](const auto &wp) { return wp.expired(); });
 
@@ -27,8 +29,11 @@ void Physics::update(float delta_time)
             continue;
         }
 
+        std::optional<GameObjectId> collided_with_water = std::nullopt;
         if (collider->collideWith(*water_collider))
         {
+            collided_with_water = water_collider->getOwner()->getId();
+
             rigid_body->addForce([](const glm::vec3 &, const glm::vec3 &, const glm::vec3 &, const glm::vec3 &,
                                     float mass) { return std::make_tuple(1.05f * mass * GRAVITY * UP, glm::vec3{}); });
         }
@@ -41,7 +46,38 @@ void Physics::update(float delta_time)
 
         const auto world_position = glm::vec3(world_transform[3]);
         transform->translate(rigid_body->position_ - world_position);
-
+        
         // TODO rotation
+
+        if (collided_with_water.has_value())
+        {
+            for (const auto &callback : rigid_body->collision_callbacks_)
+            {
+                callback(collided_with_water.value());
+            }
+        }
+
     }
+}
+
+std::vector<glm::vec3> Physics::simulateCannonballTrajectory(const glm::vec3 &initial_position,
+                                                             const glm::vec3 &initial_velocity)
+{
+    constexpr const float DT = 0.05f;
+
+    std::vector<glm::vec3> positions;
+    positions.push_back(initial_position);
+
+    glm::vec3 position = initial_position;
+    glm::vec3 velocity = initial_velocity;
+
+    while (glm::dot(position, UP) > 0.0f)
+    {
+        const auto acceleration = -GRAVITY * UP;
+        velocity += acceleration * DT;
+        position += velocity * DT;
+        positions.push_back(position);
+    }
+
+    return positions;
 }

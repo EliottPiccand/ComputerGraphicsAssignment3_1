@@ -10,6 +10,14 @@ enum class RenderingStyle
     Wireframe,
 };
 
+enum class View
+{
+    FreeCamera,
+    Top,
+    Cannon,
+    CannonBall,
+};
+
 struct Singleton
 {
     static inline bool game_loaded = false;
@@ -20,4 +28,5 @@ struct Singleton
     static inline std::weak_ptr<component::Camera3D> active_camera;
     
     static inline RenderingStyle rendering_style = RenderingStyle::OpaquePolygon;
+    static inline View view;
 };

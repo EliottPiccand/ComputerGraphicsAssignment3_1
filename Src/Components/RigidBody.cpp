@@ -1,16 +1,23 @@
 #include "Components/RigidBody.h"
 
+#include "Components/Component.h"
 #include "GameObject.h" // IWYU pragma: keep
+#include "Physics.h"
+#include <memory>
 
 using namespace component;
 
-RigidBody::RigidBody() : is_static_(true)
+RigidBody::RigidBody() : is_static_(true), has_collisions_(true)
+{
+}
+
+RigidBody::RigidBody(float mass) : RigidBody(mass, glm::mat3(1.0f))
 {
 }
 
 RigidBody::RigidBody(float mass, glm::mat3 inertia)
-    : is_static_(false), mass_(mass), inverse_mass_(1.0f / mass), inverse_inertia_(glm::inverse(inertia)),
-      velocity_({}), angular_velocity_({})
+    : is_static_(false), has_collisions_(true), mass_(mass), inverse_mass_(1.0f / mass),
+      inverse_inertia_(glm::inverse(inertia)), velocity_({}), angular_velocity_({})
 {
 }
 
@@ -19,12 +26,24 @@ void RigidBody::addForce(Force force)
     forces_.push_back(force);
 }
 
+void RigidBody::addCollisionCallback(CollisionCallback callback)
+{
+    collision_callbacks_.push_back(callback);
+}
+
+void RigidBody::setVelocity(const glm::vec3 &velocity)
+{
+    velocity_ = velocity;
+}
+
 void RigidBody::initialize()
 {
     GET_COMPONENT(Collider, collider_, RigidBody);
 
     const auto &transform = collider_.lock()->transform_.lock()->resolve();
     position_ = glm::vec3(transform[3]);
+
+    Physics::addRigidBody(std::dynamic_pointer_cast<RigidBody>(Component::shared_from_this()));
 }
 
 void RigidBody::updatePhysics(float delta_time)

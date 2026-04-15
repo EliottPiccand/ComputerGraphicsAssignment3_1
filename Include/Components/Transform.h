@@ -21,6 +21,11 @@ class Transform : public Component
     /// axis should be normalized
     void rotate(const float angle, const glm::vec3 &axis);
 
+    void setPosition(const glm::vec3 &position);
+
+    /// axis should be normalized
+    void pointToward(const glm::vec3 &direction);
+
     bool render() const override;
 
   private:
