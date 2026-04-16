@@ -9,11 +9,11 @@
 #include <string_view>
 #include <unordered_map>
 
+#include <Lib/OpenGL.h>
 #include <Lib/tiny_gltf.h>
 
 #include "Assets/AssetLoader.h"
 #include "Assets/Texture.h"
-#include "Lib/OpenGL.h"
 #include "Utils/Log.h"
 #include "Utils/Profiling.h"
 
@@ -465,8 +465,7 @@ std::shared_ptr<Model> Model::load(const std::filesystem::path &path)
     {
         const std::string_view uri(image.uri.data, image.uri.len);
 
-        const auto texture_path = model_directory / std::filesystem::path(uri);
-        const auto texture = AssetLoader::get<Texture>(texture_path.string());
+        const auto texture = AssetLoader::get<Texture>(uri);
         textures.push_back(texture);
         LOG_DEBUG("loaded texture: {}", uri);
     }

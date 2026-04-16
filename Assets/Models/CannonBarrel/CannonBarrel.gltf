@@ -18,7 +18,7 @@
 	"nodes":[
 		{
 			"mesh":0,
-			"name":"StylShip_Cannon",
+			"name":"Cannon",
 			"rotation":[
 				0.7071068286895752,
 				0,
@@ -51,7 +51,7 @@
 					]
 				}
 			},
-			"name":"Mat_StylShip_Props",
+			"name":"Mat_Props",
 			"normalTexture":{
 				"index":0
 			},
@@ -98,18 +98,18 @@
 	"images":[
 		{
 			"mimeType":"image/png",
-			"name":"StylShip_Props_NormalOpenGL",
-			"uri":"StylShip_Props_NormalOpenGL.png"
+			"name":"PropsNormal",
+			"uri":"Cannon/PropsNormal.png"
 		},
 		{
 			"mimeType":"image/png",
-			"name":"StylShip_Props_AlbedoTransparency",
-			"uri":"StylShip_Props_AlbedoTransparency.png"
+			"name":"PropsAlbedo",
+			"uri":"Cannon/PropsAlbedo.png"
 		},
 		{
 			"mimeType":"image/png",
-			"name":"StylShip_Props_MetallicSmoothness",
-			"uri":"StylShip_Props_MetallicSmoothness.png"
+			"name":"PropsMetallicSmoothness",
+			"uri":"Cannon/PropsMetallicSmoothness.png"
 		}
 	],
 	"accessors":[

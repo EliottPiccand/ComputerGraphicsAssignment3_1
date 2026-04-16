@@ -35,7 +35,7 @@
 				0
 			],
 			"mesh":1,
-			"name":"BombBall",
+			"name":"CannonBall",
 			"rotation":[
 				-0.5,
 				-0.4999999403953552,
@@ -212,7 +212,7 @@
 					]
 				}
 			},
-			"name":"None__BombBall_png",
+			"name":"None__CannonBall_png",
 			"pbrMetallicRoughness":{
 				"baseColorTexture":{
 					"index":0
@@ -240,7 +240,7 @@
 			]
 		},
 		{
-			"name":"BombBall",
+			"name":"CannonBall",
 			"primitives":[
 				{
 					"attributes":{
@@ -281,13 +281,13 @@
 	"images":[
 		{
 			"mimeType":"image/png",
-			"name":"BombBall",
-			"uri":"BombBall.png"
+			"name":"CannonBall",
+			"uri":"CannonBall/CannonBallAlbedo.png"
 		},
 		{
 			"mimeType":"image/png",
-			"name":"BombBall - Metal",
-			"uri":"BombBall%20-%20Metal.png"
+			"name":"CannonBall - Metal",
+			"uri":"CannonBall/CannonBallMetallic.png"
 		}
 	],
 	"accessors":[

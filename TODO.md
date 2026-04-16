@@ -35,5 +35,5 @@
 
 ## If time
 - fix copy_asset.py when assets are removed
-- move textures in the assets/texture folder and fix models accordingly
-- add metallic material
+- ~~move textures in the assets/texture folder and fix models accordingly~~
+- pbr (assignment 3_2)

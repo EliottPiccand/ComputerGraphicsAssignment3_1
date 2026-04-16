@@ -60,7 +60,7 @@
 	"nodes":[
 		{
 			"mesh":0,
-			"name":"StylShip_SailMid2",
+			"name":"SailMid2",
 			"rotation":[
 				0.7071068286895752,
 				0,
@@ -80,7 +80,7 @@
 		},
 		{
 			"mesh":1,
-			"name":"StylShip_MastMid",
+			"name":"MastMid",
 			"rotation":[
 				0.7071068286895752,
 				0,
@@ -100,7 +100,7 @@
 		},
 		{
 			"mesh":2,
-			"name":"StylShip_MainFlag",
+			"name":"MainFlag",
 			"scale":[
 				0.009999999776482582,
 				0.009999999776482582,
@@ -114,7 +114,7 @@
 		},
 		{
 			"mesh":3,
-			"name":"StylShip_WheelStand",
+			"name":"WheelStand",
 			"rotation":[
 				0.7071068286895752,
 				0,
@@ -134,7 +134,7 @@
 		},
 		{
 			"mesh":4,
-			"name":"StylShip_WireFront",
+			"name":"WireFront",
 			"rotation":[
 				0.7071068286895752,
 				0,
@@ -154,7 +154,7 @@
 		},
 		{
 			"mesh":5,
-			"name":"StylShip_SailMid1",
+			"name":"SailMid1",
 			"rotation":[
 				0.7071068286895752,
 				0,
@@ -174,7 +174,7 @@
 		},
 		{
 			"mesh":6,
-			"name":"StylShip_Anchor",
+			"name":"Anchor",
 			"rotation":[
 				0.7071068286895752,
 				0,
@@ -194,7 +194,7 @@
 		},
 		{
 			"mesh":7,
-			"name":"StylShip_Wall",
+			"name":"Wall",
 			"rotation":[
 				0.7071068286895752,
 				0,
@@ -214,7 +214,7 @@
 		},
 		{
 			"mesh":8,
-			"name":"StylShip_FencingFront",
+			"name":"FencingFront",
 			"rotation":[
 				0.7071068286895752,
 				0,
@@ -234,7 +234,7 @@
 		},
 		{
 			"mesh":9,
-			"name":"StylShip_Door2",
+			"name":"Door2",
 			"rotation":[
 				0.7071068286895752,
 				0,
@@ -254,7 +254,7 @@
 		},
 		{
 			"mesh":10,
-			"name":"StylShip_Ropes",
+			"name":"Ropes",
 			"rotation":[
 				0.7071068286895752,
 				0,
@@ -274,7 +274,7 @@
 		},
 		{
 			"mesh":11,
-			"name":"StylShip_StairsTop",
+			"name":"StairsTop",
 			"rotation":[
 				0.7071068286895752,
 				0,
@@ -294,7 +294,7 @@
 		},
 		{
 			"mesh":12,
-			"name":"StylShip_Door1",
+			"name":"Door1",
 			"rotation":[
 				0.7071068286895752,
 				0,
@@ -314,7 +314,7 @@
 		},
 		{
 			"mesh":13,
-			"name":"StylShip_Wheel",
+			"name":"Wheel",
 			"rotation":[
 				0.7071068286895752,
 				0,
@@ -334,7 +334,7 @@
 		},
 		{
 			"mesh":14,
-			"name":"StylShip_StairsSmall",
+			"name":"StairsSmall",
 			"rotation":[
 				0.70710688829422,
 				0,
@@ -354,7 +354,7 @@
 		},
 		{
 			"mesh":15,
-			"name":"StylShip_LoopholeCap3_left",
+			"name":"LoopholeCap3_left",
 			"rotation":[
 				0.7071068286895752,
 				0,
@@ -374,7 +374,7 @@
 		},
 		{
 			"mesh":16,
-			"name":"StylShip_WireBack",
+			"name":"WireBack",
 			"rotation":[
 				0.7071068286895752,
 				0,
@@ -394,7 +394,7 @@
 		},
 		{
 			"mesh":17,
-			"name":"StylShip_LoopholeCap1_right",
+			"name":"LoopholeCap1_right",
 			"rotation":[
 				0.7071068286895752,
 				0,
@@ -414,7 +414,7 @@
 		},
 		{
 			"mesh":18,
-			"name":"StylShip_FencingBack",
+			"name":"FencingBack",
 			"rotation":[
 				0.7071068286895752,
 				0,
@@ -434,7 +434,7 @@
 		},
 		{
 			"mesh":19,
-			"name":"StylShip_Body",
+			"name":"Body",
 			"rotation":[
 				0.7071068286895752,
 				0,
@@ -454,7 +454,7 @@
 		},
 		{
 			"mesh":20,
-			"name":"StylShip_LoopholeCap2_left",
+			"name":"LoopholeCap2_left",
 			"rotation":[
 				0.7071068286895752,
 				0,
@@ -474,7 +474,7 @@
 		},
 		{
 			"mesh":21,
-			"name":"StylShip_SailBack",
+			"name":"SailBack",
 			"rotation":[
 				0.7071068286895752,
 				0,
@@ -494,7 +494,7 @@
 		},
 		{
 			"mesh":22,
-			"name":"StylShip_Loopholes",
+			"name":"Loopholes",
 			"rotation":[
 				0.7071068286895752,
 				0,
@@ -514,7 +514,7 @@
 		},
 		{
 			"mesh":23,
-			"name":"StylShip_Windows",
+			"name":"Windows",
 			"rotation":[
 				0.7071068286895752,
 				0,
@@ -534,7 +534,7 @@
 		},
 		{
 			"mesh":24,
-			"name":"StylShip_Flag1",
+			"name":"Flag1",
 			"rotation":[
 				0.7071068286895752,
 				0,
@@ -554,7 +554,7 @@
 		},
 		{
 			"mesh":25,
-			"name":"StylShip_WireMid",
+			"name":"WireMid",
 			"rotation":[
 				0.7071068286895752,
 				0,
@@ -574,7 +574,7 @@
 		},
 		{
 			"mesh":26,
-			"name":"StylShip_Flag2",
+			"name":"Flag2",
 			"rotation":[
 				0.7071068286895752,
 				0,
@@ -594,7 +594,7 @@
 		},
 		{
 			"mesh":27,
-			"name":"StylShip_SailFront",
+			"name":"SailFront",
 			"rotation":[
 				0.7071068286895752,
 				0,
@@ -614,7 +614,7 @@
 		},
 		{
 			"mesh":28,
-			"name":"StylShip_FloorFront",
+			"name":"FloorFront",
 			"rotation":[
 				0.7071068286895752,
 				0,
@@ -634,7 +634,7 @@
 		},
 		{
 			"mesh":29,
-			"name":"StylShip_StairsBot",
+			"name":"StairsBot",
 			"rotation":[
 				0.7071068286895752,
 				0,
@@ -654,7 +654,7 @@
 		},
 		{
 			"mesh":30,
-			"name":"StylShip_LoopholeCap3_right",
+			"name":"LoopholeCap3_right",
 			"rotation":[
 				0.7071068286895752,
 				0,
@@ -674,7 +674,7 @@
 		},
 		{
 			"mesh":31,
-			"name":"StylShip_FloorBackTop",
+			"name":"FloorBackTop",
 			"rotation":[
 				0.7071068286895752,
 				0,
@@ -694,7 +694,7 @@
 		},
 		{
 			"mesh":32,
-			"name":"StylShip_MastBack",
+			"name":"MastBack",
 			"rotation":[
 				0.7071068286895752,
 				0,
@@ -714,7 +714,7 @@
 		},
 		{
 			"mesh":33,
-			"name":"StylShip_Prow",
+			"name":"Prow",
 			"rotation":[
 				0.7071068286895752,
 				0,
@@ -734,7 +734,7 @@
 		},
 		{
 			"mesh":34,
-			"name":"StylShip_FloorMid",
+			"name":"FloorMid",
 			"rotation":[
 				0.7071068286895752,
 				0,
@@ -754,7 +754,7 @@
 		},
 		{
 			"mesh":35,
-			"name":"StylShip_LoopholeCap1_left",
+			"name":"LoopholeCap1_left",
 			"rotation":[
 				0.7071068286895752,
 				0,
@@ -774,7 +774,7 @@
 		},
 		{
 			"mesh":36,
-			"name":"StylShip_Bracing",
+			"name":"Bracing",
 			"rotation":[
 				0.7071068286895752,
 				0,
@@ -794,7 +794,7 @@
 		},
 		{
 			"mesh":37,
-			"name":"StylShip_Support",
+			"name":"Support",
 			"rotation":[
 				0.7071068286895752,
 				0,
@@ -814,7 +814,7 @@
 		},
 		{
 			"mesh":38,
-			"name":"StylShip_FloorBackBottom",
+			"name":"FloorBackBottom",
 			"rotation":[
 				0.7071068286895752,
 				0,
@@ -834,7 +834,7 @@
 		},
 		{
 			"mesh":39,
-			"name":"StylShip_FencingMid",
+			"name":"FencingMid",
 			"rotation":[
 				0.70710688829422,
 				0,
@@ -854,7 +854,7 @@
 		},
 		{
 			"mesh":40,
-			"name":"StylShip_MastFront",
+			"name":"MastFront",
 			"rotation":[
 				0.7071068286895752,
 				0,
@@ -874,7 +874,7 @@
 		},
 		{
 			"mesh":41,
-			"name":"StylShip_LoopholeCap2_right",
+			"name":"LoopholeCap2_right",
 			"rotation":[
 				0.7071068286895752,
 				0,
@@ -894,7 +894,7 @@
 		},
 		{
 			"mesh":42,
-			"name":"StylShip_Rudder",
+			"name":"Rudder",
 			"rotation":[
 				0.7071068286895752,
 				0,
@@ -935,7 +935,7 @@
 					]
 				}
 			},
-			"name":"Mat_StylShip_SailsRope",
+			"name":"Mat_SailsRope",
 			"normalTexture":{
 				"index":1
 			},
@@ -961,7 +961,7 @@
 					]
 				}
 			},
-			"name":"Mat_StylShip_Masts",
+			"name":"Mat_Masts",
 			"normalTexture":{
 				"index":4
 			},
@@ -987,7 +987,7 @@
 					]
 				}
 			},
-			"name":"Mat_StylShip_Elements",
+			"name":"Mat_Elements",
 			"normalTexture":{
 				"index":7
 			},
@@ -1013,7 +1013,7 @@
 					]
 				}
 			},
-			"name":"Mat_StylShip_ShipHull",
+			"name":"Mat_ShipHull",
 			"normalTexture":{
 				"index":10
 			},
@@ -1038,7 +1038,7 @@
 					]
 				}
 			},
-			"name":"Mat_StylShip_Decks",
+			"name":"Mat_Decks",
 			"normalTexture":{
 				"index":13
 			},
@@ -1725,83 +1725,83 @@
 	"images":[
 		{
 			"mimeType":"image/png",
-			"name":"StylShip_SailsRope_Emissive",
-			"uri":"StylShip_SailsRope_Emissive.png"
+			"name":"SailsRopeEmissive",
+			"uri":"Ship/SailsRopeEmissive.png"
 		},
 		{
 			"mimeType":"image/png",
-			"name":"StylShip_SailsRope_NormalOpenGL",
-			"uri":"StylShip_SailsRope_NormalOpenGL.png"
+			"name":"SailsRopeNormal",
+			"uri":"Ship/SailsRopeNormal.png"
 		},
 		{
 			"mimeType":"image/png",
-			"name":"StylShip_SailsRope_AlbedoTransparency",
-			"uri":"StylShip_SailsRope_AlbedoTransparency.png"
+			"name":"SailsRopeAlbedo",
+			"uri":"Ship/SailsRopeAlbedo.png"
 		},
 		{
 			"mimeType":"image/png",
-			"name":"StylShip_SailsRope_MetallicSmoothness",
-			"uri":"StylShip_SailsRope_MetallicSmoothness.png"
+			"name":"SailsRopeMetallicSmoothness",
+			"uri":"Ship/SailsRopeMetallicSmoothness.png"
 		},
 		{
 			"mimeType":"image/png",
-			"name":"StylShip_Masts_NormalOpenGL",
-			"uri":"StylShip_Masts_NormalOpenGL.png"
+			"name":"MastsNormal",
+			"uri":"Ship/MastsNormal.png"
 		},
 		{
 			"mimeType":"image/png",
-			"name":"StylShip_Masts_AlbedoTransparency",
-			"uri":"StylShip_Masts_AlbedoTransparency.png"
+			"name":"MastsAlbedo",
+			"uri":"Ship/MastsAlbedo.png"
 		},
 		{
 			"mimeType":"image/png",
-			"name":"StylShip_Masts_MetallicSmoothness",
-			"uri":"StylShip_Masts_MetallicSmoothness.png"
+			"name":"MastsMetallicSmoothness",
+			"uri":"Ship/MastsMetallicSmoothness.png"
 		},
 		{
 			"mimeType":"image/png",
-			"name":"StylShip_Elements_NormalOpenGL",
-			"uri":"StylShip_Elements_NormalOpenGL.png"
+			"name":"ElementsNormal",
+			"uri":"Ship/ElementsNormal.png"
 		},
 		{
 			"mimeType":"image/png",
-			"name":"StylShip_Elements_AlbedoTransparency",
-			"uri":"StylShip_Elements_AlbedoTransparency.png"
+			"name":"ElementsAlbedo",
+			"uri":"Ship/ElementsAlbedo.png"
 		},
 		{
 			"mimeType":"image/png",
-			"name":"StylShip_Elements_MetallicSmoothness",
-			"uri":"StylShip_Elements_MetallicSmoothness.png"
+			"name":"ElementsMetallicSmoothness",
+			"uri":"Ship/ElementsMetallicSmoothness.png"
 		},
 		{
 			"mimeType":"image/png",
-			"name":"StylShip_ShipHull_NormalOpenGL",
-			"uri":"StylShip_ShipHull_NormalOpenGL.png"
+			"name":"ShipHullNormal",
+			"uri":"Ship/ShipHullNormal.png"
 		},
 		{
 			"mimeType":"image/png",
-			"name":"StylShip_ShipHull_AlbedoTransparency",
-			"uri":"StylShip_ShipHull_AlbedoTransparency.png"
+			"name":"ShipHullAlbedo",
+			"uri":"Ship/ShipHullAlbedo.png"
 		},
 		{
 			"mimeType":"image/png",
-			"name":"StylShip_ShipHull_MetallicSmoothness",
-			"uri":"StylShip_ShipHull_MetallicSmoothness.png"
+			"name":"ShipHullMetallicSmoothness",
+			"uri":"Ship/ShipHullMetallicSmoothness.png"
 		},
 		{
 			"mimeType":"image/png",
-			"name":"StylShip_Decks_NormalOpenGL",
-			"uri":"StylShip_Decks_NormalOpenGL.png"
+			"name":"DecksNormal",
+			"uri":"Ship/DecksNormal.png"
 		},
 		{
 			"mimeType":"image/png",
-			"name":"StylShip_Decks_AlbedoTransparency",
-			"uri":"StylShip_Decks_AlbedoTransparency.png"
+			"name":"DecksAlbedo",
+			"uri":"Ship/DecksAlbedo.png"
 		},
 		{
 			"mimeType":"image/png",
-			"name":"StylShip_Decks_MetallicSmoothness",
-			"uri":"StylShip_Decks_MetallicSmoothness.png"
+			"name":"DecksMetallicSmoothness",
+			"uri":"Ship/DecksMetallicSmoothness.png"
 		}
 	],
 	"accessors":[

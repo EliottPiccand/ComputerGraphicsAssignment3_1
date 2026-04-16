@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <filesystem>
 #include <memory>
+#include <string_view>
 #include <vector>
 
 #include <Lib/OpenGL.h>
@@ -20,6 +21,8 @@ class Model
     struct Mesh;
 
   public:
+    static inline constexpr const std::string_view DIRECTORY = "Models";
+
     using TextureOverride = std::unordered_map<size_t, std::unordered_map<Texture::Type, std::shared_ptr<asset::Texture>>>;
 
     Model(GLuint vertex_array, GLuint vertex_buffer, std::vector<Mesh> meshes);

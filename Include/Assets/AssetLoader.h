@@ -1,5 +1,6 @@
 #pragma once
 
+#include <concepts>
 #include <filesystem>
 #include <memory>
 #include <string_view>
@@ -9,13 +10,18 @@
 #include "Utils/Log.h"
 #include "Utils/Path.h"
 
+template <typename T>
+concept Asset = requires {
+    { T::DIRECTORY } -> std::same_as<const std::string_view &>;
+    { T::load(std::declval<const std::filesystem::path &>()) } -> std::same_as<std::shared_ptr<T>>;
+};
+
 class AssetLoader
 {
   public:
-    template <typename Asset, typename... Args>
-    static std::shared_ptr<Asset> get(const std::string_view &path, Args &&...args)
+    template <Asset A> static std::shared_ptr<A> get(const std::string_view &path)
     {
-        const std::filesystem::path full_path = ASSET_PATH / path;
+        const std::filesystem::path full_path = ASSET_PATH / A::DIRECTORY / path;
 
         const auto it = assets_.find(full_path);
         if (it == assets_.end())
@@ -26,11 +32,11 @@ class AssetLoader
             }
 
             LOG_DEBUG("loading asset {}", full_path.string());
-            assets_[full_path] = Asset::load(full_path, std::forward<Args>(args)...);
+            assets_[full_path] = A::load(full_path);
             LOG_DEBUG("loaded asset {}", full_path.string());
         }
 
-        return std::static_pointer_cast<Asset>(assets_[full_path]);
+        return std::static_pointer_cast<A>(assets_[full_path]);
     }
 
   private:

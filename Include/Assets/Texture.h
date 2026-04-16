@@ -11,6 +11,8 @@ namespace asset
 class Texture
 {
   public:
+    static inline constexpr const std::string_view DIRECTORY = "Textures";
+
     enum class Type {
         Albedo,
         MetallicSmoothness,

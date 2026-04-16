@@ -29,10 +29,10 @@
 #include "Utils/Math.h"
 #include "Utils/Profiling.h"
 #include "Utils/Random.h"
-#include "glm/ext/quaternion_geometric.hpp"
 
 #pragma region model_settings
-constexpr const std::string_view SHIP_MODEL = "Models/Ship/Ship.gltf";
+
+constexpr const std::string_view SHIP_MODEL = "Ship/Ship.gltf";
 constexpr const glm::vec3 SHIP_MODEL_DEFAULT_TRANSLATE = {0.5f, 1.0f, -0.25f};
 constexpr const glm::vec3 SHIP_MODEL_DEFAULT_ROTATION = {glm::radians(90.0f), 0.0f, 0.0f};
 constexpr const glm::vec3 SHIP_MODEL_DEFAULT_SCALE = 0.5f * glm::vec3{1.0f, 1.0f, 1.0f};
@@ -41,16 +41,16 @@ constexpr const component::Collider::AABB SHIP_MODEL_COLLIDER = {
     .center = {0.0f, 0.0f, 3.0f},
 };
 
-constexpr const std::string_view CANNON_STAND_MODEL = "Models/CannonStand/CannonStand.gltf";
+constexpr const std::string_view CANNON_STAND_MODEL = "CannonStand/CannonStand.gltf";
 constexpr const glm::vec3 CANNON_STAND_MODEl_DEFAULT_TRANSLATE = {};
 constexpr const glm::vec3 CANNON_STAND_MODEL_DEFAULT_ROTATION = {glm::radians(90.0f), 0.0f, 0.0f};
 
-constexpr const std::string_view CANNON_BARREL_MODEL = "Models/CannonBarrel/CannonBarrel.gltf";
+constexpr const std::string_view CANNON_BARREL_MODEL = "CannonBarrel/CannonBarrel.gltf";
 constexpr const glm::vec3 CANNON_BARREL_MODEl_DEFAULT_TRANSLATE = {};
 constexpr const glm::vec3 CANNON_BARREL_MODEL_DEFAULT_ROTATION = {glm::radians(8.0f), glm::radians(180.0f),
                                                                   glm::radians(0.0f)};
 
-constexpr const std::string_view CANNONBALL_MODEL = "Models/CannonBall/CannonBall.gltf";
+constexpr const std::string_view CANNONBALL_MODEL = "CannonBall/CannonBall.gltf";
 constexpr const glm::vec3 CANNONBALL_MODEL_DEFAULT_TRANSLATE = {};
 constexpr const glm::vec3 CANNONBALL_MODEL_DEFAULT_ROTATION = {glm::radians(90.0f), 0.0f, 0.0f};
 constexpr const glm::vec3 CANNONBALL_MODEL_DEFAULT_SCALE = 0.4f * glm::vec3{1.0f, 1.0f, 1.0f};
@@ -91,7 +91,7 @@ Application::Application()
             0,
             {
                 {asset::Texture::Type::Albedo,
-                 AssetLoader::get<asset::Texture>("Models/Ship/StylShip_SailsRope_AlbedoTransparency_Player.png")},
+                 AssetLoader::get<asset::Texture>("Ship/SailsRopePlayerAlbedo.png")},
                 {asset::Texture::Type::Emissive, nullptr},
             },
         },
@@ -213,7 +213,7 @@ Application::Application()
             return;
         }
 
-        LOG_DEBUG("fire {}", glm::length(event.initial_velocity));
+        LOG_DEBUG("fire");
 
         auto cannonball = scene_root_->addChild();
         std::weak_ptr<GameObject> weak_cannonball = cannonball;
@@ -224,10 +224,9 @@ Application::Application()
             .center = {},
         });
         auto rigid_body = cannonball->addComponent<component::RigidBody>(CANNONBALL_MASS);
-        rigid_body->addCollisionCallback([weak_cannonball, water_id](const GameObjectId id){
+        rigid_body->addCollisionCallback([weak_cannonball, water_id](const GameObjectId id) {
             if (id == water_id)
             {
-                LOG_DEBUG("cannonball hit water");
                 weak_cannonball.lock()->detach();
             }
             else
@@ -241,7 +240,7 @@ Application::Application()
         cannonball_model->addComponent<component::Transform>(
             CANNONBALL_MODEL_DEFAULT_TRANSLATE, CANNONBALL_MODEL_DEFAULT_ROTATION, CANNONBALL_MODEL_DEFAULT_SCALE);
         cannonball->addComponent<component::ModelInstance>(AssetLoader::get<asset::Model>(CANNONBALL_MODEL));
-    
+
         cannonball->initialize();
     });
 }
