@@ -14,4 +14,16 @@
 #define _v4(vector) vector.x, vector.y, vector.z, vector.w
 #define _dv3(vector) static_cast<double>(vector.x), static_cast<double>(vector.y), static_cast<double>(vector.z)
 
+#define PUSH_CLEAR_STATE()                                                                                             \
+    glMatrixMode(GL_MODELVIEW);                                                                                        \
+    glPushMatrix();                                                                                                    \
+    glMatrixMode(GL_PROJECTION);                                                                                       \
+    glPushMatrix()
+
+#define POP_CLEAR_STATE()                                                                                              \
+    glMatrixMode(GL_PROJECTION);                                                                                       \
+    glPopMatrix();                                                                                                     \
+    glMatrixMode(GL_MODELVIEW);                                                                                        \
+    glPopMatrix()
+
 #pragma clang diagnostic pop

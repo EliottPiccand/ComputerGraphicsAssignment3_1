@@ -32,8 +32,10 @@ class Camera3D : public Component
     };
     using Data = std::variant<Perspective, Orthographic>;
 
-    Camera3D(Perspective perspective, const glm::vec3 &look_at);
-    Camera3D(Orthographic orthographic, const glm::vec3 &look_at);
+    /// forward: local coordinates
+    Camera3D(Perspective perspective, const glm::vec3 &forward);
+    /// forward: local coordinates
+    Camera3D(Orthographic orthographic, const glm::vec3 &forward);
 
     void initialize() override;
 
@@ -41,10 +43,15 @@ class Camera3D : public Component
     void bind() const;
 
     [[nodiscard]] glm::vec3 screenToWorld(const glm::vec2 &screen_position) const;
+
+    /// world coordinates
     [[nodiscard]] glm::vec3 forward() const;
+    
+    /// world coordinates
     [[nodiscard]] glm::vec3 getPosition() const;
 
-    void lookAt(const glm::vec3 &position);
+    /// forward: world coordinates
+    void lookToward(const glm::vec3 &forward);
 
   private:
     static inline bool static_initialized_ = false;
@@ -54,12 +61,14 @@ class Camera3D : public Component
     static inline double aspect_ratio_;
 
     Data data_;
-    glm::vec3 look_at_;
+    /// local coordinates
+    glm::vec3 forward_;
 
     std::weak_ptr<component::Transform> transform_;
     friend FreeViewControls;
 
-    Camera3D(Data data, const glm::vec3 &look_at);
+    /// forward: local coordinates
+    Camera3D(Data data, const glm::vec3 &forward);
 
     
 };

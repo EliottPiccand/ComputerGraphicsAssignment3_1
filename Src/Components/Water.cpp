@@ -3,7 +3,6 @@
 #include <Lib/OpenGL.h>
 
 #include "Utils/Constants.h"
-#include "Utils/Log.h"
 #include "Utils/MeshPrimitives.h"
 #include "Utils/Profiling.h"
 
@@ -14,8 +13,6 @@ Water::Water()
     constexpr const size_t QUADS_PER_SIDE = static_cast<size_t>(WORLD_WIDTH);
 
     const auto [vertices, indices] = generateQuadPlane(WORLD_WIDTH, QUADS_PER_SIDE);
-
-    LOG_WARNING("water specs: {} {}", vertices.size(), indices.size());
 
     glGenVertexArrays(1, &vertex_array_);
     glBindVertexArray(vertex_array_);

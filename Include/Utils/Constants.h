@@ -9,6 +9,7 @@ constexpr const glm::vec3 Z = {0.0f, 0.0f, 1.0f};
 constexpr const glm::vec3 NORTH = X;
 constexpr const glm::vec3 EAST = -Y;
 constexpr const glm::vec3 UP = Z;
+constexpr const glm::vec3 DOWN = -UP;
 constexpr const glm::vec3 SOUTH = -NORTH;
 constexpr const glm::vec3 WEST = -EAST;
 

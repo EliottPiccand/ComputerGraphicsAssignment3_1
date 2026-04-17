@@ -16,5 +16,5 @@ glm::quat twistAroundAxis(const glm::quat &q, const glm::vec3 &axis)
 float angleAroundAxis(const glm::quat &q, const glm::vec3 &axis)
 {
     glm::quat twist = twistAroundAxis(q, axis);
-    return 2.0f * std::atan2(glm::dot(glm::vec3(twist.x, twist.y, twist.z), axis), twist.w) - std::numbers::pi_v<float> / 2.0f;
+    return 2.0f * std::atan2(glm::dot(glm::vec3(twist.x, twist.y, twist.z), axis), twist.w);
 }

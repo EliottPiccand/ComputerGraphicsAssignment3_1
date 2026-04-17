@@ -3,6 +3,7 @@
 #include <cmath>
 #include <numbers>
 
+#include <Lib/OpenGL.h>
 #include <Lib/glfw.h>
 
 #include "Events/EventQueue.h"
@@ -16,16 +17,13 @@
 #include "Utils/Log.h"
 #include "Utils/Math.h"
 #include "Utils/Profiling.h"
-#include <Lib/OpenGL.h>
-
 
 using namespace component;
 
 CannonPlayerController::CannonPlayerController(std::weak_ptr<Transform> cannon_barrel_transform,
                                                std::weak_ptr<Transform> target_transform,
                                                std::weak_ptr<Camera3D> camera)
-    : barrel_transform_(cannon_barrel_transform), target_transform_(target_transform), camera_(camera),
-      aiming_(false)
+    : barrel_transform_(cannon_barrel_transform), target_transform_(target_transform), camera_(camera), aiming_(false)
 {
     Input::bindMouseButton(Input::Action::AimAndFire, GLFW_MOUSE_BUTTON_LEFT);
     Input::bindMouseButton(Input::Action::CancelFire, GLFW_MOUSE_BUTTON_RIGHT);
@@ -140,7 +138,7 @@ void CannonPlayerController::update(float delta_time)
 
         const auto current_rotation_matrix = glm::mat3(resolved_transform);
         const auto current_rotation = glm::quat_cast(current_rotation_matrix);
-        const auto current_angle = angleAroundAxis(current_rotation, UP) + std::numbers::pi_v<float>;
+        const auto current_angle = angleAroundAxis(current_rotation, UP) + std::numbers::pi_v<float> / 2.0f;
 
         transform->rotate(target_angle - current_angle, UP);
 
@@ -153,9 +151,11 @@ void CannonPlayerController::update(float delta_time)
         barrel_transform->pointToward(glm::normalize(local_direction));
 
         // Camera
-        auto camera = camera_.lock();
-        const auto camera_position = camera->getPosition();
-        camera->lookAt(camera_position + cannonball_initial_velocity_ - UP * glm::dot(UP, cannonball_initial_velocity_));
+        const auto planar_velocity = cannonball_initial_velocity_ - UP * glm::dot(UP, cannonball_initial_velocity_);
+        if (glm::length(planar_velocity) > EPSILON)
+        {
+            camera_.lock()->lookToward(glm::normalize(planar_velocity));
+        }
     }
 
     if (Input::getState(Singleton::view != View::Top ? Input::Action::DebugAimAndFire : Input::Action::AimAndFire) ==
@@ -163,7 +163,7 @@ void CannonPlayerController::update(float delta_time)
     {
         if (aiming_)
         {
-            EventQueue::post<event::Fire>(position, cannonball_initial_velocity_);
+            EventQueue::post<event::Fire>(position, cannonball_initial_velocity_, getOwner()->getId());
             aiming_ = false;
         }
     }
@@ -173,13 +173,7 @@ bool CannonPlayerController::render() const
 {
     if (Singleton::debug)
     {
-        glMatrixMode(GL_MODELVIEW);
-        glPushMatrix();
-        glLoadIdentity();
-
-        glMatrixMode(GL_PROJECTION);
-        glPushMatrix();
-        glLoadIdentity();
+        PUSH_CLEAR_STATE();
 
         Singleton::active_camera.lock()->bind();
 
@@ -197,11 +191,7 @@ bool CannonPlayerController::render() const
         }
         glEnd();
 
-        glMatrixMode(GL_PROJECTION);
-        glPopMatrix();
-
-        glMatrixMode(GL_MODELVIEW);
-        glPopMatrix();
+        POP_CLEAR_STATE();
     }
     return false;
 }

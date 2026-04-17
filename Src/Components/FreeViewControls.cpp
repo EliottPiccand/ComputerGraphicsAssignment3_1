@@ -41,8 +41,7 @@ void FreeViewControls::update(float delta_time)
     const auto &camera = Singleton::active_camera.lock();
     if (std::holds_alternative<Camera3D::Perspective>(camera->data_))
     {
-        const auto camera_position = camera->getPosition();
-        auto camera_direction = glm::normalize(camera->look_at_ - camera_position);
+        auto camera_direction = camera->forward_;
         auto forward = glm::normalize(camera_direction - UP * glm::dot(camera_direction, UP));
         auto right = glm::cross(forward, UP);
 
@@ -57,7 +56,7 @@ void FreeViewControls::update(float delta_time)
             camera_direction = glm::rotate(camera_direction, delta_pitch, right);
             camera_direction = glm::rotate(camera_direction, mouse_delta.x * delta_time * HORIZONTAL_SENSITIVITY, UP);
 
-            camera->look_at_ = camera_position + camera_direction;
+            camera->forward_ = camera_direction;
 
             forward =
                 glm::normalize(glm::dot(camera_direction, NORTH) * NORTH + glm::dot(camera_direction, EAST) * EAST);
@@ -102,7 +101,6 @@ void FreeViewControls::update(float delta_time)
         {
             motion *= SPEED * delta_time;
 
-            camera->look_at_ += motion;
             camera->transform_.lock()->translate(motion);
         }
     }
@@ -114,8 +112,7 @@ bool FreeViewControls::render() const
 
     if (Singleton::debug && Singleton::view == View::FreeCamera)
     {
-        glMatrixMode(GL_MODELVIEW);
-        glPushMatrix();
+        PUSH_CLEAR_STATE();
 
         const auto camera = Singleton::active_camera.lock();
         camera->bind();
@@ -123,6 +120,8 @@ bool FreeViewControls::render() const
         const auto perspective = std::get<Camera3D::Perspective>(camera->data_);
         const auto position =
             camera->getPosition() + camera->forward() * (static_cast<float>(perspective.near) + LENGTH);
+
+        glMatrixMode(GL_MODELVIEW);
         glTranslatef(_v3(position));
 
         glLineWidth(2.0f);
@@ -131,33 +130,28 @@ bool FreeViewControls::render() const
         constexpr const auto EAST_LINE_END = EAST * LENGTH;
         constexpr const auto UP_LINE_END = UP * LENGTH;
 
-        constexpr const GLfloat material_red[] = {_v4(color::RED)};
-        constexpr const GLfloat material_green[] = {_v4(color::GREEN)};
-        constexpr const GLfloat material_blue[] = {_v4(color::BLUE)};
+        constexpr const GLfloat MATERIAL_RED[] = {_v4(color::RED)};
+        constexpr const GLfloat MATERIAL_GREEN[] = {_v4(color::GREEN)};
+        constexpr const GLfloat MATERIAL_BLUE[] = {_v4(color::BLUE)};
 
         glBegin(GL_LINES);
-            glMaterialfv(GL_FRONT, GL_AMBIENT, material_red);
-            glMaterialfv(GL_FRONT, GL_DIFFUSE, material_red);
-            glVertex3f(0.0f, 0.0f, 0.0f);
-            glVertex3f(_v3(NORTH_LINE_END));
+        glMaterialfv(GL_FRONT, GL_AMBIENT, MATERIAL_RED);
+        glMaterialfv(GL_FRONT, GL_DIFFUSE, MATERIAL_RED);
+        glVertex3f(0.0f, 0.0f, 0.0f);
+        glVertex3f(_v3(NORTH_LINE_END));
 
-            glMaterialfv(GL_FRONT, GL_AMBIENT, material_green);
-            glMaterialfv(GL_FRONT, GL_DIFFUSE, material_green);
-            glVertex3f(0.0f, 0.0f, 0.0f);
-            glVertex3f(_v3(EAST_LINE_END));
+        glMaterialfv(GL_FRONT, GL_AMBIENT, MATERIAL_GREEN);
+        glMaterialfv(GL_FRONT, GL_DIFFUSE, MATERIAL_GREEN);
+        glVertex3f(0.0f, 0.0f, 0.0f);
+        glVertex3f(_v3(EAST_LINE_END));
 
-            glMaterialfv(GL_FRONT, GL_AMBIENT, material_blue);
-            glMaterialfv(GL_FRONT, GL_DIFFUSE, material_blue);
-            glVertex3f(0.0f, 0.0f, 0.0f);
-            glVertex3f(_v3(UP_LINE_END));
+        glMaterialfv(GL_FRONT, GL_AMBIENT, MATERIAL_BLUE);
+        glMaterialfv(GL_FRONT, GL_DIFFUSE, MATERIAL_BLUE);
+        glVertex3f(0.0f, 0.0f, 0.0f);
+        glVertex3f(_v3(UP_LINE_END));
         glEnd();
 
-        glMatrixMode(GL_MODELVIEW);
-        glPopMatrix();
-        glMatrixMode(GL_PROJECTION);
-        glPopMatrix();
-        glMatrixMode(GL_MODELVIEW);
-        glPopMatrix();
+        POP_CLEAR_STATE();
     }
 
     return false;

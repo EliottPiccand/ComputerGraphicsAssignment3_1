@@ -1,7 +1,6 @@
 #include "Components/Camera3D.h"
 
 #include <stdexcept>
-#include <variant>
 
 #include <Lib/OpenGL.h>
 
@@ -13,7 +12,7 @@
 
 using namespace component;
 
-Camera3D::Camera3D(Data data, const glm::vec3 &look_at) : data_(data), look_at_(look_at)
+Camera3D::Camera3D(Data data, const glm::vec3 &forward) : data_(data), forward_(forward)
 {
     if (!static_initialized_)
     {
@@ -23,11 +22,11 @@ Camera3D::Camera3D(Data data, const glm::vec3 &look_at) : data_(data), look_at_(
     }
 }
 
-Camera3D::Camera3D(Perspective perspective, const glm::vec3 &look_at) : Camera3D(Data(perspective), look_at)
+Camera3D::Camera3D(Perspective perspective, const glm::vec3 &forward) : Camera3D(Data(perspective), forward)
 {
 }
 
-Camera3D::Camera3D(Orthographic orthographic, const glm::vec3 &look_at) : Camera3D(Data(orthographic), look_at)
+Camera3D::Camera3D(Orthographic orthographic, const glm::vec3 &forward) : Camera3D(Data(orthographic), forward)
 {
 }
 
@@ -53,13 +52,13 @@ void Camera3D::bind() const
     ProfileScope;
     ProfileScopeGPU("Camera3D::bind");
 
+    // Projection Matrix
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+
     if (std::holds_alternative<Perspective>(data_))
     {
         const auto &perspective = std::get<Perspective>(data_);
-
-        // Projection Matrix
-        glMatrixMode(GL_PROJECTION);
-        glLoadIdentity();
         gluPerspective(perspective.fov, aspect_ratio_, perspective.near, perspective.far);
     }
     else if (std::holds_alternative<Orthographic>(data_))
@@ -71,9 +70,6 @@ void Camera3D::bind() const
         double bottom = -orthographic.scale;
         double top = orthographic.scale;
 
-        // Projection Matrix
-        glMatrixMode(GL_PROJECTION);
-        glLoadIdentity();
         glOrtho(left, right, bottom, top, orthographic.near, orthographic.far);
     }
     else
@@ -82,11 +78,12 @@ void Camera3D::bind() const
     }
 
     const auto eye = getPosition();
+    const auto look_at = eye + forward();
 
     // View Matrix
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
-    gluLookAt(_dv3(eye), _dv3(look_at_), _dv3(UP));
+    gluLookAt(_dv3(eye), _dv3(look_at), _dv3(UP));
 }
 
 glm::vec3 Camera3D::screenToWorld(const glm::vec2 &screen_position) const
@@ -113,8 +110,10 @@ glm::vec3 Camera3D::screenToWorld(const glm::vec2 &screen_position) const
         throw std::runtime_error("missing Camera3D::screenToWorld implementation for data alternative");
     }
 
-    const auto eye = getPosition();
-    auto view = glm::lookAt(eye, look_at_, UP);
+    const auto transform = transform_.lock()->resolve();
+    const auto eye = glm::vec3(transform[3]);
+    const auto look_at = eye + glm::vec3(transform * glm::vec4(forward_, 0.0f));
+    auto view = glm::lookAt(eye, look_at, UP);
 
     glm::vec4 screen_ndc_position = {
         (2.0f * screen_position.x) / viewport_width - 1.0f,
@@ -130,10 +129,12 @@ glm::vec3 Camera3D::screenToWorld(const glm::vec2 &screen_position) const
 
 glm::vec3 Camera3D::forward() const
 {
-    return glm::normalize(look_at_ - getPosition());
+    return glm::normalize(glm::vec3(transform_.lock()->resolve() * glm::vec4(forward_, 0.0f)));
 }
 
-void Camera3D::lookAt(const glm::vec3 &position)
+void Camera3D::lookToward(const glm::vec3 &forward)
 {
-    look_at_ = position;
+    const auto transform = transform_.lock()->resolve();
+    const auto local_forward = glm::inverse(transform) * glm::vec4(forward, 0.0f);
+    forward_ = glm::normalize(glm::vec3(local_forward));
 }

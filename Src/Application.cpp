@@ -65,6 +65,7 @@ constexpr const double PERSPECTIVE_NEAR = 0.1;  // m
 constexpr const double PERSPECTIVE_FAR = 300.0; // m
 
 constexpr const glm::vec3 CANNON_CAMERA_OFFSET = {1.0f, -4.0f, 1.2f};
+constexpr const glm::vec3 CANNONBALL_CAMERA_OFFSET = {0.5f, -2.0f, 0.5f};
 
 static_assert(PERSPECTIVE_FAR > static_cast<double>(WORLD_WIDTH) * std::numbers::sqrt2,
               "Perspective camera far plan not far enough to see the entire map");
@@ -118,7 +119,7 @@ Application::Application() : free_view_override_(false)
     scene_root_ = std::make_shared<GameObject>();
     scene_root_->addComponent<component::Transform>();
 
-    // - Perspective Camera
+    // - Free View Camera
     {
         auto perspective_camera = scene_root_->addChild();
         perspective_camera->addComponent<component::Transform>(glm::vec3{5.0f, 5.0f, 5.0f});
@@ -128,7 +129,7 @@ Application::Application() : free_view_override_(false)
                 .near = PERSPECTIVE_NEAR,
                 .far = PERSPECTIVE_FAR,
             },
-            glm::vec3{0.0f, 0.0f, 0.0f});
+            EAST);
         free_view_controls_ = perspective_camera->addComponent<component::FreeViewControls>();
     }
 
@@ -142,7 +143,7 @@ Application::Application() : free_view_override_(false)
                 .near = 10.0,
                 .far = 100.0,
             },
-            glm::vec3{0.0f, 0.0f, 0.0f});
+            DOWN + NORTH * 0.01f);
     }
 
     auto sun = scene_root_->addChild();
@@ -173,6 +174,7 @@ Application::Application() : free_view_override_(false)
 
         auto cannon = ship->addChild();
         cannon->addComponent<component::Transform>(CANNON_POSITION);
+        player_cannon_id_ = cannon->getId();
 
         auto cannon_stand_model = cannon->addChild();
         cannon_stand_model->addComponent<component::Transform>(CANNON_STAND_MODEl_DEFAULT_TRANSLATE,
@@ -198,10 +200,10 @@ Application::Application() : free_view_override_(false)
                 .near = PERSPECTIVE_NEAR,
                 .far = PERSPECTIVE_FAR,
             },
-            CANNON_CAMERA_OFFSET + CANNON_POSITION + ship_pos + EAST); // TODO: change when implementing ship motion
+            EAST);
 
-        cannon->addComponent<component::CannonPlayerController>(cannon_barrel_transform, player_target_transform, cannon_camera_);
-
+        cannon->addComponent<component::CannonPlayerController>(cannon_barrel_transform, player_target_transform,
+                                                                cannon_camera_);
     }
 
     // - Enemy 1 Ship
@@ -260,6 +262,8 @@ Application::Application() : free_view_override_(false)
             {
                 LOG_WARNING("cannonball collided with game object {} but nothing happend", id);
             }
+
+            // check_camera TODO
         });
         rigid_body->setVelocity(event.initial_velocity);
 
@@ -268,6 +272,19 @@ Application::Application() : free_view_override_(false)
             CANNONBALL_MODEL_DEFAULT_TRANSLATE, CANNONBALL_MODEL_DEFAULT_ROTATION, CANNONBALL_MODEL_DEFAULT_SCALE);
         cannonball_model->addComponent<component::ModelInstance>(
             AssetLoader::getOrLoadFromFile<asset::Model>(CANNONBALL_MODEL));
+
+        if (event.shooter == player_cannon_id_)
+        {
+            auto cannonball_camera = cannonball->addChild();
+            cannonball_camera->addComponent<component::Transform>(CANNONBALL_CAMERA_OFFSET);
+            // last_cannonball_camera_ = {cannonball_camera->addComponent<component::Camera3D>(
+            //     component::Camera3D::Perspective{
+            //         .fov = FOV,
+            //         .near = PERSPECTIVE_NEAR,
+            //         .far = PERSPECTIVE_FAR,
+            //     },
+            //     event.initial_velocity - UP * glm::dot(UP, event.initial_velocity))}; //  TODO
+        }
 
         cannonball->initialize();
     });
