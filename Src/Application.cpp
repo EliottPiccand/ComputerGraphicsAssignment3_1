@@ -81,7 +81,6 @@ Application::Application()
     });
 
     // Load assets
-
     AssetLoader::get<asset::Model>(SHIP_MODEL);
     const asset::Model::TextureOverride PLAYER_SHIP_TEXTURE_OVERRIDE = {
         {
@@ -115,7 +114,7 @@ Application::Application()
         free_view_controls_ = perspective_camera->addComponent<component::FreeViewControls>();
     }
 
-    // Top View Camera
+    // - Top View Camera
     {
         auto top_view_camera = scene_root_->addChild();
         top_view_camera->addComponent<component::Transform>(UP * 80.0f - NORTH * 1.0f);
@@ -132,7 +131,7 @@ Application::Application()
     sun->addComponent<component::Transform>(UP * 100.0f - NORTH * 30.0f);
     sun->addComponent<component::LightSource>(rgba(252, 231, 165, 1), rgb(255, 255, 255));
 
-    // Player Ship
+    // - Player Ship
     {
         auto ship = scene_root_->addChild();
         ship->addComponent<component::Transform>(NORTH * 10.0f);
@@ -173,7 +172,7 @@ Application::Application()
         cannon->addComponent<component::CannonPlayerController>(cannon_barrel_transform, player_target_transform);
     }
 
-    // Enemy 1 Ship
+    // - Enemy 1 Ship
     {
         auto enemy_ship_1 = scene_root_->addChild();
         enemy_ship_1->addComponent<component::Transform>(NORTH * -10.0f);
@@ -185,6 +184,7 @@ Application::Application()
         enemy_ship_1_model->addComponent<component::ModelInstance>(AssetLoader::get<asset::Model>(SHIP_MODEL));
     }
 
+    // - Water
     auto water = scene_root_->addChild();
     water->addComponent<component::Transform>(glm::vec3{}, glm::vec3{}, glm::vec3{WORLD_WIDTH, WORLD_WIDTH, 1.0f});
     Physics::water_collider_ = water->addComponent<component::Collider>(component::Collider::AABB{
@@ -235,7 +235,7 @@ Application::Application()
         auto cannonball_model = cannonball->addChild();
         cannonball_model->addComponent<component::Transform>(
             CANNONBALL_MODEL_DEFAULT_TRANSLATE, CANNONBALL_MODEL_DEFAULT_ROTATION, CANNONBALL_MODEL_DEFAULT_SCALE);
-        cannonball->addComponent<component::ModelInstance>(AssetLoader::get<asset::Model>(CANNONBALL_MODEL));
+        cannonball_model->addComponent<component::ModelInstance>(AssetLoader::get<asset::Model>(CANNONBALL_MODEL));
 
         cannonball->initialize();
     });
