@@ -398,7 +398,7 @@ void processNode(const size_t node_index, const glm::mat4 &parent_transform, con
 
 } // namespace
 
-std::shared_ptr<Model> Model::load(const std::filesystem::path &path)
+std::shared_ptr<Model> Model::loadFromFile(const std::filesystem::path &path)
 {
     LOG_DEBUG("loading model '{}'", path.string());
 
@@ -465,7 +465,7 @@ std::shared_ptr<Model> Model::load(const std::filesystem::path &path)
     {
         const std::string_view uri(image.uri.data, image.uri.len);
 
-        const auto texture = AssetLoader::get<Texture>(uri);
+        const auto texture = AssetLoader::getOrLoadFromFile<Texture>(uri);
         textures.push_back(texture);
         LOG_DEBUG("loaded texture: {}", uri);
     }
@@ -519,7 +519,7 @@ std::shared_ptr<Model> Model::load(const std::filesystem::path &path)
     glBufferData(GL_ARRAY_BUFFER, static_cast<GLsizeiptr>(vertices.size() * sizeof(Vertex)), vertices.data(),
                  GL_STATIC_DRAW);
 
-    // Setup vertex attributes (legacy OpenGL) - AFTER binding VBO
+    // Bind vertex attributes
     glEnableClientState(GL_VERTEX_ARRAY);
     glVertexPointer(3, GL_FLOAT, sizeof(Vertex), reinterpret_cast<const void *>(offsetof(Vertex, position)));
 
@@ -639,7 +639,7 @@ std::shared_ptr<Model> Model::load(const std::filesystem::path &path)
                       (material.normal_texture ? 1 : 0) + (material.emissive_texture ? 1 : 0) +
                       (material.ambient_occlusion_texture ? 1 : 0));
 
-        meshes.push_back({index_buffer, indices.size(), material});
+        meshes.push_back({index_buffer, static_cast<GLsizei>(indices.size()), material});
     }
 
     glBindVertexArray(0);
@@ -706,7 +706,7 @@ void Model::draw(TextureOverride texture_override) const
         }
 
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh.index_buffer);
-        glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(mesh.index_count), GL_UNSIGNED_SHORT, nullptr);
+        glDrawElements(GL_TRIANGLES, mesh.index_count, GL_UNSIGNED_SHORT, nullptr);
 
         if (material_texture_override.contains(Texture::Type::Albedo))
         {

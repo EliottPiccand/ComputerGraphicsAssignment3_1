@@ -81,20 +81,20 @@ Application::Application()
     });
 
     // Load assets
-    AssetLoader::get<asset::Model>(SHIP_MODEL);
+    AssetLoader::getOrLoadFromFile<asset::Model>(SHIP_MODEL);
     const asset::Model::TextureOverride PLAYER_SHIP_TEXTURE_OVERRIDE = {
         {
             0,
             {
-                {asset::Texture::Type::Albedo, AssetLoader::get<asset::Texture>("Ship/SailsRopePlayerAlbedo.png")},
+                {asset::Texture::Type::Albedo, AssetLoader::getOrLoadFromFile<asset::Texture>("Ship/SailsRopePlayerAlbedo.png")},
                 {asset::Texture::Type::Emissive, nullptr},
             },
         },
     };
 
-    AssetLoader::get<asset::Model>(CANNON_STAND_MODEL);
-    AssetLoader::get<asset::Model>(CANNON_BARREL_MODEL);
-    AssetLoader::get<asset::Model>(CANNONBALL_MODEL);
+    AssetLoader::getOrLoadFromFile<asset::Model>(CANNON_STAND_MODEL);
+    AssetLoader::getOrLoadFromFile<asset::Model>(CANNON_BARREL_MODEL);
+    AssetLoader::getOrLoadFromFile<asset::Model>(CANNONBALL_MODEL);
 
     // Scene
     scene_root_ = std::make_shared<GameObject>();
@@ -141,7 +141,7 @@ Application::Application()
         auto ship_model = ship->addChild();
         ship_model->addComponent<component::Transform>(SHIP_MODEL_DEFAULT_TRANSLATE, SHIP_MODEL_DEFAULT_ROTATION,
                                                        SHIP_MODEL_DEFAULT_SCALE);
-        ship_model->addComponent<component::ModelInstance>(AssetLoader::get<asset::Model>(SHIP_MODEL),
+        ship_model->addComponent<component::ModelInstance>(AssetLoader::getOrLoadFromFile<asset::Model>(SHIP_MODEL),
                                                            PLAYER_SHIP_TEXTURE_OVERRIDE);
 
         auto player_target = scene_root_->addChild();
@@ -157,7 +157,7 @@ Application::Application()
         auto cannon_stand_model = cannon->addChild();
         cannon_stand_model->addComponent<component::Transform>(CANNON_STAND_MODEl_DEFAULT_TRANSLATE,
                                                                CANNON_STAND_MODEL_DEFAULT_ROTATION);
-        cannon_stand_model->addComponent<component::ModelInstance>(AssetLoader::get<asset::Model>(CANNON_STAND_MODEL));
+        cannon_stand_model->addComponent<component::ModelInstance>(AssetLoader::getOrLoadFromFile<asset::Model>(CANNON_STAND_MODEL));
 
         auto cannon_barrel = cannon->addChild();
         auto cannon_barrel_transform = cannon_barrel->addComponent<component::Transform>();
@@ -167,7 +167,7 @@ Application::Application()
         cannon_barrel_model->addComponent<component::Transform>(CANNON_BARREL_MODEl_DEFAULT_TRANSLATE,
                                                                 CANNON_BARREL_MODEL_DEFAULT_ROTATION);
         cannon_barrel_model->addComponent<component::ModelInstance>(
-            AssetLoader::get<asset::Model>(CANNON_BARREL_MODEL));
+            AssetLoader::getOrLoadFromFile<asset::Model>(CANNON_BARREL_MODEL));
 
         cannon->addComponent<component::CannonPlayerController>(cannon_barrel_transform, player_target_transform);
     }
@@ -181,14 +181,14 @@ Application::Application()
         auto enemy_ship_1_model = enemy_ship_1->addChild();
         enemy_ship_1_model->addComponent<component::Transform>(SHIP_MODEL_DEFAULT_TRANSLATE,
                                                                SHIP_MODEL_DEFAULT_ROTATION, SHIP_MODEL_DEFAULT_SCALE);
-        enemy_ship_1_model->addComponent<component::ModelInstance>(AssetLoader::get<asset::Model>(SHIP_MODEL));
+        enemy_ship_1_model->addComponent<component::ModelInstance>(AssetLoader::getOrLoadFromFile<asset::Model>(SHIP_MODEL));
     }
 
     // - Water
     auto water = scene_root_->addChild();
-    water->addComponent<component::Transform>(glm::vec3{}, glm::vec3{}, glm::vec3{WORLD_WIDTH, WORLD_WIDTH, 1.0f});
+    water->addComponent<component::Transform>(glm::vec3{}, glm::vec3{}, glm::vec3{1.0f, 1.0f, 1.0f});
     Physics::water_collider_ = water->addComponent<component::Collider>(component::Collider::AABB{
-        .half_size = {0.5f, 0.5f, 0.5f},
+        .half_size = {WORLD_WIDTH / 2.0f, WORLD_WIDTH / 2.0f, 0.5f},
         .center = {0.0f, 0.0f, -0.5f},
     });
     water->addComponent<component::Water>();
@@ -235,7 +235,7 @@ Application::Application()
         auto cannonball_model = cannonball->addChild();
         cannonball_model->addComponent<component::Transform>(
             CANNONBALL_MODEL_DEFAULT_TRANSLATE, CANNONBALL_MODEL_DEFAULT_ROTATION, CANNONBALL_MODEL_DEFAULT_SCALE);
-        cannonball_model->addComponent<component::ModelInstance>(AssetLoader::get<asset::Model>(CANNONBALL_MODEL));
+        cannonball_model->addComponent<component::ModelInstance>(AssetLoader::getOrLoadFromFile<asset::Model>(CANNONBALL_MODEL));
 
         cannonball->initialize();
     });

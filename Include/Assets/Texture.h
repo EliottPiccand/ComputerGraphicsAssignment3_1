@@ -23,7 +23,7 @@ class Texture
     Texture(GLuint id);
     ~Texture();
 
-    [[nodiscard]] static std::shared_ptr<Texture> load(const std::filesystem::path &path);
+    [[nodiscard]] static std::shared_ptr<Texture> loadFromFile(const std::filesystem::path &path);
 
     void bind(GLenum slot) const;
     void unbind(GLenum slot) const;

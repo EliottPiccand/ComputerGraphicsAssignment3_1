@@ -2,7 +2,7 @@
 ## Requirements
 - radar as opaque red cone + cylinder at the back
 - ~~cannonballs parabolic trajectories~~
-- water as triangle quad mesh
+- ~~water as triangle quad mesh~~
 - turret view (keyboard update the ship, no turret motion)
 - cannonball view (above and beyond the cannonball, facing forward)
 - at least 2 enemies

@@ -28,7 +28,7 @@ class Model
     Model(GLuint vertex_array, GLuint vertex_buffer, std::vector<Mesh> meshes);
     ~Model();
 
-    [[nodiscard]] static std::shared_ptr<Model> load(const std::filesystem::path &path);
+    [[nodiscard]] static std::shared_ptr<Model> loadFromFile(const std::filesystem::path &path);
 
     void draw(TextureOverride texture_override = {}) const;
 
@@ -50,7 +50,7 @@ class Model
     struct Mesh
     {
         GLuint index_buffer;
-        size_t index_count;
+        GLsizei index_count;
         Material material;
     };
 

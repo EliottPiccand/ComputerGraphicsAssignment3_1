@@ -20,7 +20,7 @@ Texture::~Texture()
     }
 }
 
-std::shared_ptr<Texture> Texture::load(const std::filesystem::path &path)
+std::shared_ptr<Texture> Texture::loadFromFile(const std::filesystem::path &path)
 {
     int width, height, channels;
     unsigned char *data = stbi_load(path.generic_string().c_str(), &width, &height, &channels, 0);
