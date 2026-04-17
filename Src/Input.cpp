@@ -1,6 +1,7 @@
 #include "Input.h"
 
 #include <cassert>
+#include <cstddef>
 
 constexpr const size_t MASK_OFFSET = sizeof(unsigned int) * 8 / 2;
 constexpr const unsigned int MASK = (1 << MASK_OFFSET) - 1;

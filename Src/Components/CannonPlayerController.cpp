@@ -9,7 +9,7 @@
 #include "Events/Fire.h"
 #include "GameObject.h" // IWYU pragma: keep
 #include "Input.h"
-#include "Lib/OpenGL.h"
+#include <Lib/OpenGL.h>
 #include "Physics.h"
 #include "Singleton.h"
 #include "Utils/Color.h"

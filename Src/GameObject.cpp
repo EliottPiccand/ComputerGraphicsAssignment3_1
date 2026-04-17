@@ -59,12 +59,7 @@ void GameObject::detach()
     if (parent_.has_value())
     {
         auto &siblings = parent_->lock()->children_;
-        
-        const auto it = std::find_if(siblings.begin(), siblings.end(), [&](auto o) { return o->id_ == id_; });
-        if (it != siblings.end())
-        {
-            siblings.erase(it);
-        }
+        std::erase_if(siblings, [&](auto s) { return s->id_ == id_; });
 
         parent_ = std::nullopt;
     }

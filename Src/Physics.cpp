@@ -1,9 +1,7 @@
 #include "Physics.h"
 
-#include <optional>
 #include <ranges>
 #include <tuple>
-#include <vector>
 
 #include "GameObject.h"
 #include "Utils/Constants.h"
@@ -29,10 +27,10 @@ void Physics::update(float delta_time)
             continue;
         }
 
-        std::optional<GameObjectId> collided_with_water = std::nullopt;
+        bool collided_with_water = false;
         if (collider->collideWith(*water_collider))
         {
-            collided_with_water = water_collider->getOwner()->getId();
+            collided_with_water = true;
 
             rigid_body->addForce([](const glm::vec3 &, const glm::vec3 &, const glm::vec3 &, const glm::vec3 &,
                                     float mass) { return std::make_tuple(1.05f * mass * GRAVITY * UP, glm::vec3{}); });
@@ -46,17 +44,19 @@ void Physics::update(float delta_time)
 
         const auto world_position = glm::vec3(world_transform[3]);
         transform->translate(rigid_body->position_ - world_position);
-        
-        // TODO rotation
 
-        if (collided_with_water.has_value())
+        // TODO rotation
+        // TODO collision detection + solving
+
+        if (collided_with_water)
         {
+            const auto water_id = water_collider->getOwner()->getId();
+
             for (const auto &callback : rigid_body->collision_callbacks_)
             {
-                callback(collided_with_water.value());
+                callback(water_id);
             }
         }
-
     }
 }
 

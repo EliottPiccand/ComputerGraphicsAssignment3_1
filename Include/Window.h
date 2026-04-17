@@ -4,7 +4,6 @@
 #include <string>
 #include <utility>
 
-#include <Lib/OpenGL.h>
 #include <Lib/glfw.h>
 
 class Input;

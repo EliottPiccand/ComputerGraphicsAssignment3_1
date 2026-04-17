@@ -6,6 +6,8 @@
 #include <span>
 #include <stdexcept>
 
+#include <Lib/OpenGL.h>
+
 #include "Events/EventQueue.h"
 #include "Events/WindowResized.h"
 #include "Utils/Profiling.h"
@@ -85,47 +87,47 @@ void Window::toggleFullScreen()
     if (is_full_screen_)
     {
         // get current monitor
-        GLFWmonitor *currentMonitor = nullptr;
+        GLFWmonitor *current_monitor = nullptr;
 
-        int currentWindowX, currentWindowY;
-        glfwGetWindowPos(handle_, &currentWindowX, &currentWindowY);
+        int current_window_x, current_window_y;
+        glfwGetWindowPos(handle_, &current_window_x, &current_window_y);
 
         int count;
-        GLFWmonitor **monitorsPtr = glfwGetMonitors(&count);
+        GLFWmonitor **monitors_ptr = glfwGetMonitors(&count);
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunsafe-buffer-usage-in-container"
-        const std::span<GLFWmonitor *> monitors(monitorsPtr, static_cast<size_t>(count));
+        const std::span<GLFWmonitor *> monitors(monitors_ptr, static_cast<size_t>(count));
 #pragma clang diagnostic pop
 
         for (const auto &monitor : monitors)
         {
-            int monitorX, monitorY, width, height;
-            glfwGetMonitorWorkarea(monitor, &monitorX, &monitorY, &width, &height);
+            int monitor_x, monitory, width, height;
+            glfwGetMonitorWorkarea(monitor, &monitor_x, &monitory, &width, &height);
 
-            if ((monitorX <= currentWindowX && currentWindowX < monitorX + width) &&
-                (monitorY <= currentWindowY && currentWindowY < monitorY + height))
+            if ((monitor_x <= current_window_x && current_window_x < monitor_x + width) &&
+                (monitory <= current_window_y && current_window_y < monitory + height))
             {
-                currentMonitor = monitor;
+                current_monitor = monitor;
                 break;
             }
         }
 
-        assert(currentMonitor != nullptr && "failed to retrive current monitor");
+        assert(current_monitor != nullptr && "failed to retrive current monitor");
 
         // save current state
         int width, height;
         glfwGetWindowSize(handle_, &width, &height);
 
-        non_full_screen_position_x_ = currentWindowX;
-        non_full_screen_position_y_ = currentWindowY;
+        non_full_screen_position_x_ = current_window_x;
+        non_full_screen_position_y_ = current_window_y;
         non_full_screen_width_ = width;
         non_full_screen_height_ = height;
 
         // set fullscreen
-        const GLFWvidmode *videoMode = glfwGetVideoMode(currentMonitor);
+        const GLFWvidmode *videoMode = glfwGetVideoMode(current_monitor);
         assert(videoMode != nullptr && "failed to retrieve current video mode");
 
-        glfwSetWindowMonitor(handle_, currentMonitor, 0, 0, videoMode->width, videoMode->height,
+        glfwSetWindowMonitor(handle_, current_monitor, 0, 0, videoMode->width, videoMode->height,
                              videoMode->refreshRate);
     }
     else

@@ -2,7 +2,6 @@
 
 #include <unordered_map>
 
-#include <Lib/OpenGL.h>
 #include <Lib/glfw.h>
 #include <Lib/glm.h>
 

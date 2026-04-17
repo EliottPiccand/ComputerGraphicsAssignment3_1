@@ -1,14 +1,13 @@
 #include "Application.h"
 
-#include <memory>
 #include <string_view>
 
 #include <Lib/OpenGL.h>
+#include <Lib/glm.h>
 
 #include "Assets/AssetLoader.h"
 #include "Assets/Model.h"
 #include "Assets/Texture.h"
-#include "Components/Camera3D.h"
 #include "Components/CannonPlayerController.h"
 #include "Components/Collider.h"
 #include "Components/LightSource.h"
@@ -19,7 +18,6 @@
 #include "Events/EventQueue.h"
 #include "Events/Fire.h"
 #include "Events/WindowResized.h"
-#include "GameObject.h"
 #include "Input.h"
 #include "Physics.h"
 #include "Singleton.h"
@@ -47,8 +45,7 @@ constexpr const glm::vec3 CANNON_STAND_MODEL_DEFAULT_ROTATION = {glm::radians(90
 
 constexpr const std::string_view CANNON_BARREL_MODEL = "CannonBarrel/CannonBarrel.gltf";
 constexpr const glm::vec3 CANNON_BARREL_MODEl_DEFAULT_TRANSLATE = {};
-constexpr const glm::vec3 CANNON_BARREL_MODEL_DEFAULT_ROTATION = {glm::radians(8.0f), glm::radians(180.0f),
-                                                                  glm::radians(0.0f)};
+constexpr const glm::vec3 CANNON_BARREL_MODEL_DEFAULT_ROTATION = {glm::radians(8.0f), glm::radians(180.0f), 0.0f};
 
 constexpr const std::string_view CANNONBALL_MODEL = "CannonBall/CannonBall.gltf";
 constexpr const glm::vec3 CANNONBALL_MODEL_DEFAULT_TRANSLATE = {};
@@ -90,8 +87,7 @@ Application::Application()
         {
             0,
             {
-                {asset::Texture::Type::Albedo,
-                 AssetLoader::get<asset::Texture>("Ship/SailsRopePlayerAlbedo.png")},
+                {asset::Texture::Type::Albedo, AssetLoader::get<asset::Texture>("Ship/SailsRopePlayerAlbedo.png")},
                 {asset::Texture::Type::Emissive, nullptr},
             },
         },
@@ -359,7 +355,7 @@ void Application::render() const
 {
     ProfileScope;
 
-    constexpr const auto SKY_COLOR = rgba(193, 234, 255, 1);
+    constexpr const auto SKY_COLOR = rgb(193, 234, 255);
     glClearColor(_v4(SKY_COLOR));
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 

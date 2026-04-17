@@ -4,13 +4,13 @@
 
 glm::quat twistAroundAxis(const glm::quat &q, const glm::vec3 &axis)
 {
-    glm::vec3 proj = axis * glm::dot(glm::vec3(q.x, q.y, q.z), axis);
-    glm::quat twist(q.w, proj.x, proj.y, proj.z);
-    float len = glm::length(twist);
-    if (len < EPSILON)
+    glm::vec3 projection = axis * glm::dot(glm::vec3(q.x, q.y, q.z), axis);
+    glm::quat twist(q.w, projection.x, projection.y, projection.z);
+    float length = glm::length(twist);
+    if (length < EPSILON)
         return glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
 
-    return twist / len;
+    return twist / length;
 }
 
 float angleAroundAxis(const glm::quat &q, const glm::vec3 &axis)
