@@ -132,3 +132,8 @@ glm::vec3 Camera3D::forward() const
 {
     return glm::normalize(look_at_ - getPosition());
 }
+
+void Camera3D::lookAt(const glm::vec3 &position)
+{
+    look_at_ = position;
+}

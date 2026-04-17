@@ -9,7 +9,6 @@
 #include "Events/Fire.h"
 #include "GameObject.h" // IWYU pragma: keep
 #include "Input.h"
-#include <Lib/OpenGL.h>
 #include "Physics.h"
 #include "Singleton.h"
 #include "Utils/Color.h"
@@ -17,12 +16,16 @@
 #include "Utils/Log.h"
 #include "Utils/Math.h"
 #include "Utils/Profiling.h"
+#include <Lib/OpenGL.h>
+
 
 using namespace component;
 
 CannonPlayerController::CannonPlayerController(std::weak_ptr<Transform> cannon_barrel_transform,
-                                               std::weak_ptr<Transform> target_transform)
-    : barrel_transform_(cannon_barrel_transform), target_transform_(target_transform), aiming_(false) //, recoil_(0.0f)
+                                               std::weak_ptr<Transform> target_transform,
+                                               std::weak_ptr<Camera3D> camera)
+    : barrel_transform_(cannon_barrel_transform), target_transform_(target_transform), camera_(camera),
+      aiming_(false)
 {
     Input::bindMouseButton(Input::Action::AimAndFire, GLFW_MOUSE_BUTTON_LEFT);
     Input::bindMouseButton(Input::Action::CancelFire, GLFW_MOUSE_BUTTON_RIGHT);
@@ -148,6 +151,11 @@ void CannonPlayerController::update(float delta_time)
         const auto local_direction = glm::inverse(parent_rot) * cannonball_initial_velocity_;
 
         barrel_transform->pointToward(glm::normalize(local_direction));
+
+        // Camera
+        auto camera = camera_.lock();
+        const auto camera_position = camera->getPosition();
+        camera->lookAt(camera_position + cannonball_initial_velocity_ - UP * glm::dot(UP, cannonball_initial_velocity_));
     }
 
     if (Input::getState(Singleton::view != View::Top ? Input::Action::DebugAimAndFire : Input::Action::AimAndFire) ==

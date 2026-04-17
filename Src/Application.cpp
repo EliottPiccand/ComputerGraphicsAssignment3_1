@@ -1,5 +1,6 @@
 #include "Application.h"
 
+#include <numbers>
 #include <string_view>
 
 #include <Lib/OpenGL.h>
@@ -8,6 +9,7 @@
 #include "Assets/AssetLoader.h"
 #include "Assets/Model.h"
 #include "Assets/Texture.h"
+#include "Components/Camera3D.h"
 #include "Components/CannonPlayerController.h"
 #include "Components/Collider.h"
 #include "Components/LightSource.h"
@@ -42,6 +44,7 @@ constexpr const component::Collider::AABB SHIP_MODEL_COLLIDER = {
 constexpr const std::string_view CANNON_STAND_MODEL = "CannonStand/CannonStand.gltf";
 constexpr const glm::vec3 CANNON_STAND_MODEl_DEFAULT_TRANSLATE = {};
 constexpr const glm::vec3 CANNON_STAND_MODEL_DEFAULT_ROTATION = {glm::radians(90.0f), 0.0f, 0.0f};
+constexpr const glm::vec3 CANNON_POSITION = {0.0f, -8.5f, 4.5f};
 
 constexpr const std::string_view CANNON_BARREL_MODEL = "CannonBarrel/CannonBarrel.gltf";
 constexpr const glm::vec3 CANNON_BARREL_MODEl_DEFAULT_TRANSLATE = {};
@@ -55,14 +58,30 @@ constexpr const float CANNONBALL_MASS = 10.0f;
 
 #pragma endregion model_settings
 
-Application::Application()
+#pragma region camera_settings
+
+constexpr const double FOV = 45.0;              // °
+constexpr const double PERSPECTIVE_NEAR = 0.1;  // m
+constexpr const double PERSPECTIVE_FAR = 300.0; // m
+
+constexpr const glm::vec3 CANNON_CAMERA_OFFSET = {1.0f, -4.0f, 1.2f};
+
+static_assert(PERSPECTIVE_FAR > static_cast<double>(WORLD_WIDTH) * std::numbers::sqrt2,
+              "Perspective camera far plan not far enough to see the entire map");
+
+#pragma endregion camera_settings
+
+Application::Application() : free_view_override_(false)
 {
     ProfileScope;
 
     Random::initialize();
-    window_ = std::make_unique<Window>();
 
+    window_ = std::make_unique<Window>();
     initializeOpenGL();
+    EventQueue::registerCallback<event::WindowResized>([](const event::WindowResized &event) {
+        glViewport(0, 0, static_cast<GLsizei>(event.width), static_cast<GLsizei>(event.height));
+    });
 
     Input::initialize(*window_);
     Input::bindKey(Input::Action::ToggleFullScreen, GLFW_KEY_F11);
@@ -75,10 +94,7 @@ Application::Application()
     Input::bindKey(Input::Action::DebugMoveTargetSouth, GLFW_KEY_DOWN);
     Input::bindKey(Input::Action::DebugMoveTargetWest, GLFW_KEY_LEFT);
     Input::bindKey(Input::Action::DebugAimAndFire, GLFW_KEY_F);
-
-    EventQueue::registerCallback<event::WindowResized>([](const event::WindowResized &event) {
-        glViewport(0, 0, static_cast<GLsizei>(event.width), static_cast<GLsizei>(event.height));
-    });
+    Input::bindKey(Input::Action::CycleCameras, GLFW_KEY_V);
 
     // Load assets
     AssetLoader::getOrLoadFromFile<asset::Model>(SHIP_MODEL);
@@ -86,7 +102,8 @@ Application::Application()
         {
             0,
             {
-                {asset::Texture::Type::Albedo, AssetLoader::getOrLoadFromFile<asset::Texture>("Ship/SailsRopePlayerAlbedo.png")},
+                {asset::Texture::Type::Albedo,
+                 AssetLoader::getOrLoadFromFile<asset::Texture>("Ship/SailsRopePlayerAlbedo.png")},
                 {asset::Texture::Type::Emissive, nullptr},
             },
         },
@@ -96,7 +113,8 @@ Application::Application()
     AssetLoader::getOrLoadFromFile<asset::Model>(CANNON_BARREL_MODEL);
     AssetLoader::getOrLoadFromFile<asset::Model>(CANNONBALL_MODEL);
 
-    // Scene
+#pragma region scene
+
     scene_root_ = std::make_shared<GameObject>();
     scene_root_->addComponent<component::Transform>();
 
@@ -106,9 +124,9 @@ Application::Application()
         perspective_camera->addComponent<component::Transform>(glm::vec3{5.0f, 5.0f, 5.0f});
         free_view_camera_ = perspective_camera->addComponent<component::Camera3D>(
             component::Camera3D::Perspective{
-                .fov = 45.0,
-                .near = 0.1,
-                .far = 100.0,
+                .fov = FOV,
+                .near = PERSPECTIVE_NEAR,
+                .far = PERSPECTIVE_FAR,
             },
             glm::vec3{0.0f, 0.0f, 0.0f});
         free_view_controls_ = perspective_camera->addComponent<component::FreeViewControls>();
@@ -118,7 +136,7 @@ Application::Application()
     {
         auto top_view_camera = scene_root_->addChild();
         top_view_camera->addComponent<component::Transform>(UP * 80.0f - NORTH * 1.0f);
-        Singleton::main_camera = top_view_camera->addComponent<component::Camera3D>(
+        top_view_camera_ = top_view_camera->addComponent<component::Camera3D>(
             component::Camera3D::Orthographic{
                 .scale = 100,
                 .near = 10.0,
@@ -133,8 +151,10 @@ Application::Application()
 
     // - Player Ship
     {
+        const auto ship_pos = NORTH * 10.0f;
+
         auto ship = scene_root_->addChild();
-        ship->addComponent<component::Transform>(NORTH * 10.0f);
+        ship->addComponent<component::Transform>(ship_pos);
         ship->addComponent<component::Collider>(SHIP_MODEL_COLLIDER);
         // Physics::addRigidBody(ship->addComponent<component::RigidBody>(10.0f, glm::mat3(1.0f)));
 
@@ -152,12 +172,13 @@ Application::Application()
         });
 
         auto cannon = ship->addChild();
-        cannon->addComponent<component::Transform>(glm::vec3{0.0f, -8.5f, 4.5f});
+        cannon->addComponent<component::Transform>(CANNON_POSITION);
 
         auto cannon_stand_model = cannon->addChild();
         cannon_stand_model->addComponent<component::Transform>(CANNON_STAND_MODEl_DEFAULT_TRANSLATE,
                                                                CANNON_STAND_MODEL_DEFAULT_ROTATION);
-        cannon_stand_model->addComponent<component::ModelInstance>(AssetLoader::getOrLoadFromFile<asset::Model>(CANNON_STAND_MODEL));
+        cannon_stand_model->addComponent<component::ModelInstance>(
+            AssetLoader::getOrLoadFromFile<asset::Model>(CANNON_STAND_MODEL));
 
         auto cannon_barrel = cannon->addChild();
         auto cannon_barrel_transform = cannon_barrel->addComponent<component::Transform>();
@@ -169,7 +190,18 @@ Application::Application()
         cannon_barrel_model->addComponent<component::ModelInstance>(
             AssetLoader::getOrLoadFromFile<asset::Model>(CANNON_BARREL_MODEL));
 
-        cannon->addComponent<component::CannonPlayerController>(cannon_barrel_transform, player_target_transform);
+        auto cannon_camera = cannon->addChild();
+        cannon_camera->addComponent<component::Transform>(CANNON_CAMERA_OFFSET);
+        cannon_camera_ = cannon_camera->addComponent<component::Camera3D>(
+            component::Camera3D::Perspective{
+                .fov = FOV,
+                .near = PERSPECTIVE_NEAR,
+                .far = PERSPECTIVE_FAR,
+            },
+            CANNON_CAMERA_OFFSET + CANNON_POSITION + ship_pos + EAST); // TODO: change when implementing ship motion
+
+        cannon->addComponent<component::CannonPlayerController>(cannon_barrel_transform, player_target_transform, cannon_camera_);
+
     }
 
     // - Enemy 1 Ship
@@ -181,7 +213,8 @@ Application::Application()
         auto enemy_ship_1_model = enemy_ship_1->addChild();
         enemy_ship_1_model->addComponent<component::Transform>(SHIP_MODEL_DEFAULT_TRANSLATE,
                                                                SHIP_MODEL_DEFAULT_ROTATION, SHIP_MODEL_DEFAULT_SCALE);
-        enemy_ship_1_model->addComponent<component::ModelInstance>(AssetLoader::getOrLoadFromFile<asset::Model>(SHIP_MODEL));
+        enemy_ship_1_model->addComponent<component::ModelInstance>(
+            AssetLoader::getOrLoadFromFile<asset::Model>(SHIP_MODEL));
     }
 
     // - Water
@@ -193,12 +226,10 @@ Application::Application()
     });
     water->addComponent<component::Water>();
 
+#pragma endregion scene
+
     restart();
     scene_root_->initialize();
-
-    Singleton::game_loaded = true;
-    Singleton::active_camera = Singleton::main_camera;
-    Singleton::view = View::Top;
 
     LOG_DEBUG("cannonballs initial velocity: {} m/s", INITIAL_CANNONBALL_VELOCITY);
 
@@ -235,10 +266,16 @@ Application::Application()
         auto cannonball_model = cannonball->addChild();
         cannonball_model->addComponent<component::Transform>(
             CANNONBALL_MODEL_DEFAULT_TRANSLATE, CANNONBALL_MODEL_DEFAULT_ROTATION, CANNONBALL_MODEL_DEFAULT_SCALE);
-        cannonball_model->addComponent<component::ModelInstance>(AssetLoader::getOrLoadFromFile<asset::Model>(CANNONBALL_MODEL));
+        cannonball_model->addComponent<component::ModelInstance>(
+            AssetLoader::getOrLoadFromFile<asset::Model>(CANNONBALL_MODEL));
 
         cannonball->initialize();
     });
+
+    Singleton::game_loaded = true;
+
+    main_view_ = View::Top;
+    Singleton::view = main_view_;
 }
 
 void Application::initializeOpenGL()
@@ -288,8 +325,6 @@ void Application::update(float delta_time)
 {
     ProfileScope;
 
-    EventQueue::processAll();
-
     Input::update();
 
     if (Input::getState(Input::Action::ToggleFullScreen) == Input::State::JustReleased)
@@ -298,20 +333,17 @@ void Application::update(float delta_time)
     }
     if (Input::getState(Input::Action::ToggleFreeView) == Input::State::JustReleased)
     {
-        auto &free_view_controls_enabled = free_view_controls_.lock()->active;
-
-        free_view_controls_enabled = !free_view_controls_enabled;
-        if (free_view_controls_enabled)
+        if (!free_view_override_)
         {
-            Singleton::active_camera = free_view_camera_;
-            Singleton::view = View::FreeCamera;
+            free_view_override_ = true;
+            free_view_controls_.lock()->active = true;
             window_->captureMouse();
             LOG_INFO("free view mode enabled");
         }
         else
         {
-            Singleton::active_camera = Singleton::main_camera;
-            Singleton::view = View::Top;
+            free_view_override_ = false;
+            free_view_controls_.lock()->active = false;
             window_->releaseMouse();
             LOG_INFO("free view mode disabled");
         }
@@ -346,6 +378,51 @@ void Application::update(float delta_time)
             LOG_INFO("debug mode disabled");
         }
     }
+    if (Input::getState(Input::Action::CycleCameras) == Input::State::JustReleased)
+    {
+        switch (main_view_)
+        {
+        case View::FreeCamera:
+            LOG_WARNING("This should not be reachable: main_view_ should never be View::FreeCamera");
+            break;
+        case View::Top:
+            main_view_ = last_cannonball_camera_.has_value() ? View::CannonBall : View::Cannon;
+            break;
+        case View::Cannon:
+            [[fallthrough]];
+        case View::CannonBall:
+            main_view_ = View::Top;
+            break;
+        }
+    }
+
+    // Resolve active camera
+    if (free_view_override_)
+    {
+        Singleton::active_camera = free_view_camera_;
+        Singleton::view = View::FreeCamera;
+    }
+    else
+    {
+        Singleton::view = main_view_;
+        switch (main_view_)
+        {
+        case View::FreeCamera:
+            LOG_WARNING("This should not be reachable: main_view_ should never be View::FreeCamera");
+            break;
+        case View::Top:
+            Singleton::active_camera = top_view_camera_;
+            break;
+        case View::Cannon:
+            Singleton::active_camera = cannon_camera_;
+            break;
+        case View::CannonBall:
+            Singleton::active_camera = last_cannonball_camera_.value();
+            break;
+        }
+    }
+
+    EventQueue::processAll();
 
     scene_root_->update(delta_time);
     Physics::update(delta_time);

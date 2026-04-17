@@ -17,8 +17,9 @@
 
 ## Additional Goals
 - flapping flag
-- propeller
 - explosion effect
+- cannon recoil
+- propeller (might not be in the theme of the project)
 
 ## Custom Additional Goals
 - fireworks on win

@@ -40,8 +40,11 @@ class Camera3D : public Component
     static void onViewportResize(uint32_t width, uint32_t height);
     void bind() const;
 
-    glm::vec3 screenToWorld(const glm::vec2 &screen_position) const;
-    glm::vec3 forward() const;
+    [[nodiscard]] glm::vec3 screenToWorld(const glm::vec2 &screen_position) const;
+    [[nodiscard]] glm::vec3 forward() const;
+    [[nodiscard]] glm::vec3 getPosition() const;
+
+    void lookAt(const glm::vec3 &position);
 
   private:
     static inline bool static_initialized_ = false;
@@ -58,7 +61,7 @@ class Camera3D : public Component
 
     Camera3D(Data data, const glm::vec3 &look_at);
 
-    [[nodiscard]] glm::vec3 getPosition() const;
+    
 };
 
 } // namespace component

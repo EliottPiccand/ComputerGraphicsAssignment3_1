@@ -1,11 +1,13 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 
 #include "Clock.h"
 #include "Components/Camera3D.h"
 #include "Components/FreeViewControls.h"
 #include "GameObject.h"
+#include "Singleton.h"
 #include "Window.h"
 
 class Application
@@ -23,6 +25,12 @@ class Application
 
     std::weak_ptr<component::Camera3D> free_view_camera_;
     std::weak_ptr<component::FreeViewControls> free_view_controls_;
+
+    bool free_view_override_;
+    View main_view_;
+    std::weak_ptr<component::Camera3D> top_view_camera_;
+    std::weak_ptr<component::Camera3D> cannon_camera_;
+    std::optional<std::weak_ptr<component::Camera3D>> last_cannonball_camera_;
 
     void initializeOpenGL();
 
