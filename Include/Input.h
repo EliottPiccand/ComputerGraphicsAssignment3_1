@@ -35,6 +35,7 @@ class Input
         DebugMoveTargetWest,
         DebugAimAndFire,
         CycleCameras,
+        TogglePhysics,
     };
 
     enum class State

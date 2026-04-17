@@ -1,6 +1,7 @@
 #include "Application.h"
 
 #include <numbers>
+#include <optional>
 #include <string_view>
 
 #include <Lib/OpenGL.h>
@@ -65,14 +66,14 @@ constexpr const double PERSPECTIVE_NEAR = 0.1;  // m
 constexpr const double PERSPECTIVE_FAR = 300.0; // m
 
 constexpr const glm::vec3 CANNON_CAMERA_OFFSET = {1.0f, -4.0f, 1.2f};
-constexpr const glm::vec3 CANNONBALL_CAMERA_OFFSET = {0.5f, -2.0f, 0.5f};
+constexpr const glm::vec3 CANNONBALL_CAMERA_OFFSET = {0.5f, 0.5f, 2.0f};
 
 static_assert(PERSPECTIVE_FAR > static_cast<double>(WORLD_WIDTH) * std::numbers::sqrt2,
               "Perspective camera far plan not far enough to see the entire map");
 
 #pragma endregion camera_settings
 
-Application::Application() : free_view_override_(false)
+Application::Application() : free_view_override_(false), physics_(true)
 {
     ProfileScope;
 
@@ -96,6 +97,7 @@ Application::Application() : free_view_override_(false)
     Input::bindKey(Input::Action::DebugMoveTargetWest, GLFW_KEY_LEFT);
     Input::bindKey(Input::Action::DebugAimAndFire, GLFW_KEY_F);
     Input::bindKey(Input::Action::CycleCameras, GLFW_KEY_V);
+    Input::bindKey(Input::Action::TogglePhysics, GLFW_KEY_P);
 
     // Load assets
     AssetLoader::getOrLoadFromFile<asset::Model>(SHIP_MODEL);
@@ -253,7 +255,19 @@ Application::Application() : free_view_override_(false)
             .center = {},
         });
         auto rigid_body = cannonball->addComponent<component::RigidBody>(CANNONBALL_MASS);
-        rigid_body->addCollisionCallback([weak_cannonball, water_id](const GameObjectId id) {
+        rigid_body->addCollisionCallback([this, weak_cannonball, water_id](const GameObjectId id) {
+            if (last_cannonball_camera_.has_value() &&
+                weak_cannonball.lock()->getId() ==
+                    last_cannonball_camera_.value().lock()->getOwner()->getParent().value()->getId())
+            {
+                last_cannonball_camera_ = std::nullopt;
+                if (main_view_ == View::CannonBall)
+                {
+                    main_view_ = View::Cannon;
+                    updateActiveView();
+                }
+            }
+
             if (id == water_id)
             {
                 weak_cannonball.lock()->detach();
@@ -262,8 +276,6 @@ Application::Application() : free_view_override_(false)
             {
                 LOG_WARNING("cannonball collided with game object {} but nothing happend", id);
             }
-
-            // check_camera TODO
         });
         rigid_body->setVelocity(event.initial_velocity);
 
@@ -277,16 +289,28 @@ Application::Application() : free_view_override_(false)
         {
             auto cannonball_camera = cannonball->addChild();
             cannonball_camera->addComponent<component::Transform>(CANNONBALL_CAMERA_OFFSET);
-            // last_cannonball_camera_ = {cannonball_camera->addComponent<component::Camera3D>(
-            //     component::Camera3D::Perspective{
-            //         .fov = FOV,
-            //         .near = PERSPECTIVE_NEAR,
-            //         .far = PERSPECTIVE_FAR,
-            //     },
-            //     event.initial_velocity - UP * glm::dot(UP, event.initial_velocity))}; //  TODO
+            last_cannonball_camera_ = {cannonball_camera->addComponent<component::Camera3D>(
+                component::Camera3D::Perspective{
+                    .fov = FOV,
+                    .near = PERSPECTIVE_NEAR,
+                    .far = PERSPECTIVE_FAR,
+                },
+                NORTH)};
+
+            if (main_view_ == View::Cannon)
+            {
+                main_view_ = View::CannonBall;
+                updateActiveView();
+            }
         }
 
         cannonball->initialize();
+
+        if (event.shooter == player_cannon_id_)
+        {
+            last_cannonball_camera_.value().lock()->lookToward(
+                glm::normalize(event.initial_velocity - UP * glm::dot(UP, event.initial_velocity)));
+        }
     });
 
     Singleton::game_loaded = true;
@@ -335,6 +359,33 @@ void Application::run()
         window_->endFrame();
 
         ProfilingEndFrame;
+    }
+}
+
+void Application::updateActiveView()
+{
+    if (free_view_override_)
+    {
+        Singleton::active_camera = free_view_camera_;
+        Singleton::view = View::FreeCamera;
+        return;
+    }
+
+    Singleton::view = main_view_;
+    switch (main_view_)
+    {
+    case View::FreeCamera:
+        LOG_WARNING("This should not be reachable: main_view_ should never be View::FreeCamera");
+        break;
+    case View::Top:
+        Singleton::active_camera = top_view_camera_;
+        break;
+    case View::Cannon:
+        Singleton::active_camera = cannon_camera_;
+        break;
+    case View::CannonBall:
+        Singleton::active_camera = last_cannonball_camera_.value();
+        break;
     }
 }
 
@@ -412,37 +463,21 @@ void Application::update(float delta_time)
             break;
         }
     }
+    if (Input::getState(Input::Action::TogglePhysics) == Input::State::JustReleased)
+    {
+        physics_ = !physics_;
+    }
 
-    // Resolve active camera
-    if (free_view_override_)
-    {
-        Singleton::active_camera = free_view_camera_;
-        Singleton::view = View::FreeCamera;
-    }
-    else
-    {
-        Singleton::view = main_view_;
-        switch (main_view_)
-        {
-        case View::FreeCamera:
-            LOG_WARNING("This should not be reachable: main_view_ should never be View::FreeCamera");
-            break;
-        case View::Top:
-            Singleton::active_camera = top_view_camera_;
-            break;
-        case View::Cannon:
-            Singleton::active_camera = cannon_camera_;
-            break;
-        case View::CannonBall:
-            Singleton::active_camera = last_cannonball_camera_.value();
-            break;
-        }
-    }
+    updateActiveView();
 
     EventQueue::processAll();
 
     scene_root_->update(delta_time);
-    Physics::update(delta_time);
+
+    if (physics_)
+    {
+        Physics::update(delta_time);
+    }
 }
 
 void Application::render() const

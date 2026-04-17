@@ -3,8 +3,8 @@
 - radar as opaque red cone + cylinder at the back
 - ~~cannonballs parabolic trajectories~~
 - ~~water as triangle quad mesh~~
-- turret view (keyboard update the ship, no turret motion)
-- cannonball view (above and beyond the cannonball, facing forward)
+- ~~turret view (keyboard update the ship, no turret motion)~~
+- ~~cannonball view (above and beyond the cannonball, facing forward)~~
 - at least 2 enemies
     - move
     - shoot
@@ -28,6 +28,8 @@
 - sink animation
 - rotating ship wheel
 - moving rudder
+- waves + water interaction
+- foam trail
 
 ## assignment 3_2
 - wireframe hidden lines removal

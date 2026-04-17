@@ -38,6 +38,7 @@ class Camera3D : public Component
     Camera3D(Orthographic orthographic, const glm::vec3 &forward);
 
     void initialize() override;
+    bool render() const override;
 
     static void onViewportResize(uint32_t width, uint32_t height);
     void bind() const;

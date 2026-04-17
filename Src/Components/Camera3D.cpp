@@ -7,6 +7,8 @@
 #include "Events/EventQueue.h"
 #include "Events/WindowResized.h"
 #include "GameObject.h" // IWYU pragma: keep
+#include "Singleton.h"
+#include "Utils/Color.h"
 #include "Utils/Constants.h"
 #include "Utils/Profiling.h"
 
@@ -33,6 +35,78 @@ Camera3D::Camera3D(Orthographic orthographic, const glm::vec3 &forward) : Camera
 void Camera3D::initialize()
 {
     GET_COMPONENT(Transform, transform_, Camera3D);
+}
+
+bool Camera3D::render() const
+{
+    if (Singleton::debug)
+    {
+        glLineWidth(2.0f);
+
+        constexpr const GLfloat MATERIAL_BLUE[] = {_v4(color::BLUE)};
+        glMaterialfv(GL_FRONT, GL_AMBIENT, MATERIAL_BLUE);
+        glMaterialfv(GL_FRONT, GL_DIFFUSE, MATERIAL_BLUE);
+
+        if (std::holds_alternative<Perspective>(data_))
+        {
+            const auto &perspective = std::get<Perspective>(data_);
+
+            const auto forward = glm::normalize(forward_);
+            const auto right = glm::normalize(glm::cross(forward, UP));
+            const auto up = glm::normalize(glm::cross(right, forward));
+
+            const auto near_center = forward * static_cast<float>(perspective.near);
+            const auto near_height = 2.0f * static_cast<float>(perspective.near) *
+                                     glm::tan(glm::radians(static_cast<float>(perspective.fov) * 0.5f));
+            const auto near_width = near_height * viewport_width / viewport_height;
+
+            const auto half_width = right * (near_width * 0.5f);
+            const auto half_height = up * (near_height * 0.5f);
+
+            const auto near_top_left = near_center - half_width + half_height;
+            const auto near_top_right = near_center + half_width + half_height;
+            const auto near_bottom_left = near_center - half_width - half_height;
+            const auto near_bottom_right = near_center + half_width - half_height;
+
+            glBegin(GL_LINES);
+                glVertex3f(0.0f, 0.0f, 0.0f);
+                glVertex3f(_v3(near_top_left));
+
+                glVertex3f(0.0f, 0.0f, 0.0f);
+                glVertex3f(_v3(near_top_right));
+
+                glVertex3f(0.0f, 0.0f, 0.0f);
+                glVertex3f(_v3(near_bottom_left));
+
+                glVertex3f(0.0f, 0.0f, 0.0f);
+                glVertex3f(_v3(near_bottom_right));
+
+                glVertex3f(_v3(near_top_left));
+                glVertex3f(_v3(near_top_right));
+
+                glVertex3f(_v3(near_top_right));
+                glVertex3f(_v3(near_bottom_right));
+
+                glVertex3f(_v3(near_bottom_right));
+                glVertex3f(_v3(near_bottom_left));
+
+                glVertex3f(_v3(near_bottom_left));
+                glVertex3f(_v3(near_top_left));
+            glEnd();
+
+            glPointSize(8.0f);
+
+            constexpr const GLfloat MATERIAL_RED[] = {_v4(color::RED)};
+            glMaterialfv(GL_FRONT, GL_AMBIENT, MATERIAL_RED);
+            glMaterialfv(GL_FRONT, GL_DIFFUSE, MATERIAL_RED);
+
+            glBegin(GL_POINTS);
+                glVertex3f(0.0f, 0.0f, 0.0f);
+            glEnd();
+        }
+    }
+
+    return false;
 }
 
 void Camera3D::onViewportResize(uint32_t width, uint32_t height)

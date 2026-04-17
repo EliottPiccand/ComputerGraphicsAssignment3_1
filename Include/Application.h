@@ -32,6 +32,8 @@ class Application
     std::weak_ptr<component::Camera3D> cannon_camera_;
     std::optional<std::weak_ptr<component::Camera3D>> last_cannonball_camera_;
 
+    bool physics_;
+
     GameObjectId player_cannon_id_;
 
     void initializeOpenGL();
@@ -40,4 +42,6 @@ class Application
     void render() const;
 
     void restart();
+
+    void updateActiveView();
 };

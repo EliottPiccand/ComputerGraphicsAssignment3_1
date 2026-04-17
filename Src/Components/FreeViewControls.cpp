@@ -135,20 +135,20 @@ bool FreeViewControls::render() const
         constexpr const GLfloat MATERIAL_BLUE[] = {_v4(color::BLUE)};
 
         glBegin(GL_LINES);
-        glMaterialfv(GL_FRONT, GL_AMBIENT, MATERIAL_RED);
-        glMaterialfv(GL_FRONT, GL_DIFFUSE, MATERIAL_RED);
-        glVertex3f(0.0f, 0.0f, 0.0f);
-        glVertex3f(_v3(NORTH_LINE_END));
+            glMaterialfv(GL_FRONT, GL_AMBIENT, MATERIAL_RED);
+            glMaterialfv(GL_FRONT, GL_DIFFUSE, MATERIAL_RED);
+            glVertex3f(0.0f, 0.0f, 0.0f);
+            glVertex3f(_v3(NORTH_LINE_END));
 
-        glMaterialfv(GL_FRONT, GL_AMBIENT, MATERIAL_GREEN);
-        glMaterialfv(GL_FRONT, GL_DIFFUSE, MATERIAL_GREEN);
-        glVertex3f(0.0f, 0.0f, 0.0f);
-        glVertex3f(_v3(EAST_LINE_END));
+            glMaterialfv(GL_FRONT, GL_AMBIENT, MATERIAL_GREEN);
+            glMaterialfv(GL_FRONT, GL_DIFFUSE, MATERIAL_GREEN);
+            glVertex3f(0.0f, 0.0f, 0.0f);
+            glVertex3f(_v3(EAST_LINE_END));
 
-        glMaterialfv(GL_FRONT, GL_AMBIENT, MATERIAL_BLUE);
-        glMaterialfv(GL_FRONT, GL_DIFFUSE, MATERIAL_BLUE);
-        glVertex3f(0.0f, 0.0f, 0.0f);
-        glVertex3f(_v3(UP_LINE_END));
+            glMaterialfv(GL_FRONT, GL_AMBIENT, MATERIAL_BLUE);
+            glMaterialfv(GL_FRONT, GL_DIFFUSE, MATERIAL_BLUE);
+            glVertex3f(0.0f, 0.0f, 0.0f);
+            glVertex3f(_v3(UP_LINE_END));
         glEnd();
 
         POP_CLEAR_STATE();
