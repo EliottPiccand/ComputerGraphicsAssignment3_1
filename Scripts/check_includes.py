@@ -8,6 +8,8 @@ errors = []
 changes_made = False
 
 def check_libs(path, lines):
+    global changes_made
+
     edited = False
 
     new_lines = []
