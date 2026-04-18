@@ -6,7 +6,7 @@
 
 using namespace component;
 
-ModelInstance::ModelInstance(std::shared_ptr<asset::Model> model, asset::Model::TextureOverride texture_override)
+ModelInstance::ModelInstance(std::shared_ptr<resource::Model> model, resource::Model::TextureOverride texture_override)
     : model_(model), texture_override_(texture_override)
 {
 }

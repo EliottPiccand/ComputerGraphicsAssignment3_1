@@ -1,6 +1,5 @@
 #include "Components/Water.h"
 
-
 #include "Utils/Constants.h"
 #include "Utils/MeshPrimitives.h"
 #include "Utils/Profiling.h"
@@ -26,7 +25,7 @@ Water::Water()
 
     glGenBuffers(1, &index_buffer_);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_buffer_);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, static_cast<GLsizeiptr>(indices.size() * sizeof(uint16_t)), indices.data(),
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, static_cast<GLsizeiptr>(indices.size() * sizeof(IndexType)), indices.data(),
                  GL_STATIC_DRAW);
     index_count_ = static_cast<GLsizei>(indices.size());
 

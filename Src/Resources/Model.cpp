@@ -1,8 +1,7 @@
-#include "Assets/Model.h"
+#include "Resources/Model.h"
 
 #include <cstdint>
 #include <fstream>
-#include <functional>
 #include <ranges>
 #include <span>
 #include <stdexcept>
@@ -10,66 +9,18 @@
 
 #include <Lib/tiny_gltf.h>
 
-#include "Assets/AssetLoader.h"
+#include "Lib/OpenGL.h"
+#include "Resources/ResourceLoader.h"
 #include "Utils/Log.h"
 #include "Utils/Profiling.h"
 
-using namespace asset;
+using namespace resource;
 
 #pragma region vertex
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunused-function"
 #pragma clang diagnostic ignored "-Wunused-member-function"
-
-namespace
-{
-
-struct Vertex
-{
-    glm::vec3 position;
-    glm::vec3 normal;
-    glm::vec2 uv;
-};
-
-bool operator==(const Vertex &a, const Vertex &b)
-{
-    return a.position == b.position && a.normal == b.normal && a.uv == b.uv;
-}
-
-} // namespace
-
-namespace std
-{
-
-template <> struct hash<Vertex>
-{
-    size_t operator()(const Vertex &v) const noexcept
-    {
-        const size_t h1 = std::hash<float>{}(v.position.x);
-        const size_t h2 = std::hash<float>{}(v.position.y);
-        const size_t h3 = std::hash<float>{}(v.position.z);
-
-        const size_t h4 = std::hash<float>{}(v.normal.x);
-        const size_t h5 = std::hash<float>{}(v.normal.y);
-        const size_t h6 = std::hash<float>{}(v.normal.z);
-
-        const size_t h7 = std::hash<float>{}(v.uv.x);
-        const size_t h8 = std::hash<float>{}(v.uv.y);
-
-        size_t seed = h1;
-        seed ^= h2 + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-        seed ^= h3 + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-        seed ^= h4 + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-        seed ^= h5 + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-        seed ^= h6 + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-        seed ^= h7 + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-        seed ^= h8 + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-        return seed;
-    }
-};
-
-} // namespace std
 
 #pragma clang diagnostic pop
 
@@ -160,7 +111,7 @@ static void fs_free_file(uint8_t *data, uint64_t size, void *user_data)
 
 #pragma endregion tinygltf_callbacks
 
-Model::Model(GLuint vertex_array, GLuint vertex_buffer, std::vector<Mesh> meshes)
+Model::Model(GLuint vertex_array, GLuint vertex_buffer, std::vector<Mesh_> meshes)
     : vertex_array_(vertex_array), vertex_buffer_(vertex_buffer), meshes_(std::move(meshes))
 {
 }
@@ -181,7 +132,7 @@ namespace
 void processNode(const size_t node_index, const glm::mat4 &parent_transform, const tg3_model &model,
                  const std::filesystem::path &path, std::vector<Vertex> &vertices,
                  std::unordered_map<Vertex, GLuint> &vertex_map,
-                 std::unordered_map<int, std::vector<uint16_t>> &material_indices)
+                 std::unordered_map<int, std::vector<IndexType>> &material_indices)
 {
 
 #pragma clang diagnostic push
@@ -289,7 +240,7 @@ void processNode(const size_t node_index, const glm::mat4 &parent_transform, con
                 const uint8_t *index_data =
                     index_buffer.data.data + index_buffer_view.byte_offset + index_accessor.byte_offset;
 
-                std::vector<uint16_t> &mesh_indices = material_indices[primitive.material];
+                std::vector<IndexType> &mesh_indices = material_indices[primitive.material];
                 const size_t index_count = index_accessor.count;
 
                 if (index_accessor.component_type == GL_UNSIGNED_INT)
@@ -327,7 +278,7 @@ void processNode(const size_t node_index, const glm::mat4 &parent_transform, con
                             vertices.push_back(vertex);
                         }
 
-                        mesh_indices.push_back(static_cast<uint16_t>(vertex_map[vertex]));
+                        mesh_indices.push_back(static_cast<IndexType>(vertex_map[vertex]));
                     }
                 }
                 else if (index_accessor.component_type == GL_UNSIGNED_SHORT)
@@ -365,7 +316,7 @@ void processNode(const size_t node_index, const glm::mat4 &parent_transform, con
                             vertices.push_back(vertex);
                         }
 
-                        mesh_indices.push_back(static_cast<uint16_t>(vertex_map[vertex]));
+                        mesh_indices.push_back(static_cast<IndexType>(vertex_map[vertex]));
                     }
                 }
                 else
@@ -462,14 +413,14 @@ std::shared_ptr<Model> Model::loadFromFile(const std::filesystem::path &path)
     {
         const std::string_view uri(image.uri.data, image.uri.len);
 
-        const auto texture = AssetLoader::getOrLoadFromFile<Texture>(uri);
+        const auto texture = ResourceLoader::getAsset<Texture>(uri);
         textures.push_back(texture);
         LOG_DEBUG("loaded texture: {}", uri);
     }
 
     std::vector<Vertex> vertices;
     std::unordered_map<Vertex, GLuint> vertex_map;
-    std::unordered_map<int, std::vector<uint16_t>> material_indices;
+    std::unordered_map<int, std::vector<IndexType>> material_indices;
 
     int32_t scene_index_int = model.default_scene;
     if (scene_index_int < 0 || model.scenes_count <= static_cast<uint32_t>(scene_index_int))
@@ -530,13 +481,13 @@ std::shared_ptr<Model> Model::loadFromFile(const std::filesystem::path &path)
     const std::span<const tg3_material> model_materials(model.materials, model.materials_count);
     const std::span<const tg3_texture> model_textures(model.textures, model.textures_count);
 
-    std::vector<Model::Mesh> meshes;
+    std::vector<Model::Mesh_> meshes;
     for (const auto &[matIndex, indices] : material_indices)
     {
         GLuint index_buffer;
         glGenBuffers(1, &index_buffer);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_buffer);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, static_cast<GLsizeiptr>(indices.size() * sizeof(uint16_t)),
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, static_cast<GLsizeiptr>(indices.size() * sizeof(IndexType)),
                      indices.data(), GL_STATIC_DRAW);
 
         // Load material
@@ -663,6 +614,52 @@ std::shared_ptr<Model> Model::loadFromFile(const std::filesystem::path &path)
 #pragma clang diagnostic pop
 }
 
+std::shared_ptr<Model> Model::load(const Mesh &mesh, const Color &color)
+{
+    const auto &[vertices, indices] = mesh;
+
+    GLuint vertex_array;
+    glGenVertexArrays(1, &vertex_array);
+    glBindVertexArray(vertex_array);
+
+    GLuint vertex_buffer;
+    glGenBuffers(1, &vertex_buffer);
+    glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
+    glBufferData(GL_ARRAY_BUFFER, static_cast<GLsizeiptr>(vertices.size() * sizeof(Vertex)), vertices.data(),
+                 GL_STATIC_DRAW);
+
+    // Bind vertex attributes
+    glEnableClientState(GL_VERTEX_ARRAY);
+    glVertexPointer(3, GL_FLOAT, sizeof(Vertex), reinterpret_cast<const void *>(offsetof(Vertex, position)));
+
+    glEnableClientState(GL_NORMAL_ARRAY);
+    glNormalPointer(GL_FLOAT, sizeof(Vertex), reinterpret_cast<const void *>(offsetof(Vertex, normal)));
+
+    glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+    glTexCoordPointer(2, GL_FLOAT, sizeof(Vertex), reinterpret_cast<const void *>(offsetof(Vertex, uv)));
+
+    GLuint index_buffer;
+    glGenBuffers(1, &index_buffer);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_buffer);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, static_cast<GLsizeiptr>(indices.size() * sizeof(IndexType)), indices.data(),
+                 GL_STATIC_DRAW);
+
+    glBindVertexArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+    std::vector<Mesh_> meshes;
+    meshes.push_back({
+        .index_buffer = index_buffer,
+        .index_count = static_cast<GLsizei>(indices.size()),
+        .material = {
+            .base_color = color,
+        },
+    });
+
+    return std::make_shared<Model>(vertex_array, vertex_buffer, meshes);
+}
+
 void Model::draw(TextureOverride texture_override) const
 {
     static const TextureOverride::mapped_type EMPTY_OVERRIDE = {};
@@ -682,23 +679,26 @@ void Model::draw(TextureOverride texture_override) const
         const auto it = texture_override.find(static_cast<size_t>(i));
         const auto &material_texture_override = it != texture_override.end() ? it->second : EMPTY_OVERRIDE;
 
-        GLfloat ambient_color[] = {_v4(material.base_color)};
+        const auto ambient = glm::vec4(glm::vec3(material.base_color) * 0.5f, material.base_color.w);
+        GLfloat ambient_color[] = {_v4(ambient)};
+        GLfloat diffuse_color[] = {_v4(material.base_color)};
+        GLfloat specular_color[] = {0.0f, 0.0f, 0.0f, 1.0f};
         glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, ambient_color);
-        glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, ambient_color);
+        glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, diffuse_color);
+        glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, specular_color);
 
         if (material_texture_override.contains(Texture::Type::Albedo))
         {
-            material_texture_override.at(Texture::Type::Albedo)->bind(BASE_COLOR_TEXTURE_SLOT);
             glEnable(GL_TEXTURE_2D);
+            material_texture_override.at(Texture::Type::Albedo)->bind(BASE_COLOR_TEXTURE_SLOT);
         }
         else if (material.base_color_texture)
         {
-            material.base_color_texture->bind(BASE_COLOR_TEXTURE_SLOT);
             glEnable(GL_TEXTURE_2D);
+            material.base_color_texture->bind(BASE_COLOR_TEXTURE_SLOT);
         }
         else
         {
-            glColor4f(_v4(material.base_color));
             glDisable(GL_TEXTURE_2D);
         }
 
@@ -708,10 +708,12 @@ void Model::draw(TextureOverride texture_override) const
         if (material_texture_override.contains(Texture::Type::Albedo))
         {
             material_texture_override.at(Texture::Type::Albedo)->unbind(BASE_COLOR_TEXTURE_SLOT);
+            glDisable(GL_TEXTURE_2D);
         }
         else if (material.base_color_texture)
         {
             material.base_color_texture->unbind(BASE_COLOR_TEXTURE_SLOT);
+            glDisable(GL_TEXTURE_2D);
         }
     }
 

@@ -2,7 +2,7 @@
 
 #include <memory>
 
-#include "Assets/Model.h"
+#include "Resources/Model.h"
 #include "Components/Component.h"
 
 namespace component
@@ -11,13 +11,13 @@ namespace component
 class ModelInstance : public Component
 {
   public:
-    ModelInstance(std::shared_ptr<asset::Model> model, asset::Model::TextureOverride texture_override = {});
+    ModelInstance(std::shared_ptr<resource::Model> model, resource::Model::TextureOverride texture_override = {});
 
     bool render() const override;
 
   private:
-    std::shared_ptr<asset::Model> model_;
-    asset::Model::TextureOverride texture_override_;
+    std::shared_ptr<resource::Model> model_;
+    resource::Model::TextureOverride texture_override_;
 };
 
 } // namespace component

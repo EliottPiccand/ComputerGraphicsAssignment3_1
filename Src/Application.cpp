@@ -6,9 +6,7 @@
 #include <Lib/OpenGL.h>
 #include <Lib/glm.h>
 
-#include "Assets/AssetLoader.h"
-#include "Assets/Model.h"
-#include "Assets/Texture.h"
+#include "Components/Animation.h"
 #include "Components/CannonPlayerController.h"
 #include "Components/Collider.h"
 #include "Components/LightSource.h"
@@ -21,10 +19,14 @@
 #include "Events/WindowResized.h"
 #include "Input.h"
 #include "Physics.h"
+#include "Resources/Model.h"
+#include "Resources/ResourceLoader.h"
+#include "Resources/Texture.h"
 #include "Utils/Color.h"
 #include "Utils/Constants.h"
 #include "Utils/Log.h"
 #include "Utils/Math.h"
+#include "Utils/MeshPrimitives.h"
 #include "Utils/Profiling.h"
 #include "Utils/Random.h"
 
@@ -54,6 +56,29 @@ constexpr const glm::vec3 CANNONBALL_MODEL_DEFAULT_ROTATION = {glm::radians(90.0
 constexpr const glm::vec3 CANNONBALL_MODEL_DEFAULT_SCALE = 0.4f * glm::vec3{1.0f, 1.0f, 1.0f};
 constexpr const float CANNONBALL_MASS = 10.0f;
 
+constexpr const glm::vec3 RADAR_POSITION = {1.5f, 10.0f, 5.6f};
+
+constexpr const std::string_view RADAR_CYLINDER_MODEL = "RadarCylinder";
+constexpr const float RADAR_CYLINDER_HEIGHT = 1.0f;
+constexpr const float RADAR_CYLINDER_RAIDUS = 0.2f;
+constexpr const size_t RADAR_CYLINDER_RESOLUTION = 12;
+constexpr const Color RADAR_CYLINDER_COLOR = rgba(72, 43, 5, 1);
+constexpr const glm::vec3 RADAR_CYLINDER_DEFAULT_POSITION = Z * 0.5f;
+
+constexpr const std::string_view RADAR_CONE_MODEL = "RadarCone";
+constexpr const float RADAR_CONE_HEIGHT = 1.0f;
+constexpr const float RADAR_CONE_RAIDUS = 0.3f;
+constexpr const size_t RADAR_CONE_RESOLUTION = 12;
+constexpr const Color RADAR_CONE_COLOR = rgba(255, 0, 0, 1);
+constexpr const glm::vec3 RADAR_CONE_DEFAULT_POSITION = Z * 0.9f;
+constexpr const glm::vec3 RADAR_CONE_DEFAULT_ROTATION = {glm::radians(90.0f), 0.0f, 0.0f};
+
+const component::Animation::Callback RADAR_ANIMATION = [](float delta_time,
+                                                          std::shared_ptr<component::Transform> transform) {
+    constexpr const float ROTATION_SPEED = 2.0f * std::numbers::pi_v<float> / 3.0f;
+    transform->rotate(ROTATION_SPEED * delta_time, UP);
+};
+
 #pragma endregion model_settings
 
 #pragma region camera_settings
@@ -69,6 +94,70 @@ static_assert(PERSPECTIVE_FAR > static_cast<double>(WORLD_WIDTH) * std::numbers:
               "Perspective camera far plan not far enough to see the entire map");
 
 #pragma endregion camera_settings
+
+#pragma region ship_definition
+
+#define CREATE_SHIP(prefix, position, texture_override)                                                                \
+    auto prefix##_ship = scene_root_->addChild();                                                                      \
+    prefix##_ship->addComponent<component::Transform>(position);                                                       \
+    prefix##_ship->addComponent<component::Collider>(SHIP_MODEL_COLLIDER);                                             \
+                                                                                                                       \
+    /* ship model */                                                                                                   \
+    auto prefix##_ship_model = prefix##_ship->addChild();                                                              \
+    prefix##_ship_model->addComponent<component::Transform>(SHIP_MODEL_DEFAULT_TRANSLATE, SHIP_MODEL_DEFAULT_ROTATION, \
+                                                            SHIP_MODEL_DEFAULT_SCALE);                                 \
+    prefix##_ship_model->addComponent<component::ModelInstance>(ResourceLoader::getAsset<resource::Model>(SHIP_MODEL), \
+                                                                texture_override);                                     \
+                                                                                                                       \
+    /* target (visible in debug mode) */                                                                               \
+    auto prefix##_target = scene_root_->addChild();                                                                    \
+    auto prefix##_target_transform = prefix##_target->addComponent<component::Transform>();                            \
+    prefix##_target->addComponent<component::Collider>(component::Collider::AABB{                                      \
+        .half_size = {0.5f, 0.5f, 0.5f},                                                                               \
+        .center = {},                                                                                                  \
+    });                                                                                                                \
+                                                                                                                       \
+    /* cannon */                                                                                                       \
+    auto prefix##_cannon = prefix##_ship->addChild();                                                                  \
+    prefix##_cannon->addComponent<component::Transform>(CANNON_POSITION);                                              \
+                                                                                                                       \
+    /* - stand model */                                                                                                \
+    auto prefix##_cannon_stand_model = prefix##_cannon->addChild();                                                    \
+    prefix##_cannon_stand_model->addComponent<component::Transform>(CANNON_STAND_MODEl_DEFAULT_TRANSLATE,              \
+                                                                    CANNON_STAND_MODEL_DEFAULT_ROTATION);              \
+    prefix##_cannon_stand_model->addComponent<component::ModelInstance>(                                               \
+        ResourceLoader::getAsset<resource::Model>(CANNON_STAND_MODEL));                                                \
+                                                                                                                       \
+    /* - barrel */                                                                                                     \
+    auto prefix##_cannon_barrel = prefix##_cannon->addChild();                                                         \
+    auto prefix##_cannon_barrel_transform = prefix##_cannon_barrel->addComponent<component::Transform>();              \
+    prefix##_cannon_barrel_transform->pointToward(EAST);                                                               \
+                                                                                                                       \
+    /* - barrel model */                                                                                               \
+    auto prefix##_cannon_barrel_model = prefix##_cannon_barrel->addChild();                                            \
+    prefix##_cannon_barrel_model->addComponent<component::Transform>(CANNON_BARREL_MODEl_DEFAULT_TRANSLATE,            \
+                                                                     CANNON_BARREL_MODEL_DEFAULT_ROTATION);            \
+    prefix##_cannon_barrel_model->addComponent<component::ModelInstance>(                                              \
+        ResourceLoader::getAsset<resource::Model>(CANNON_BARREL_MODEL));                                               \
+                                                                                                                       \
+    /* radar */                                                                                                        \
+    auto prefix##_radar = prefix##_ship->addChild();                                                                   \
+    prefix##_radar->addComponent<component::Transform>(RADAR_POSITION);                                                \
+    prefix##_radar->addComponent<component::Animation>(RADAR_ANIMATION);                                               \
+                                                                                                                       \
+    /* - cylinder */                                                                                                   \
+    auto prefix##_radar_cylinder = prefix##_radar->addChild();                                                         \
+    prefix##_radar_cylinder->addComponent<component::Transform>(RADAR_CYLINDER_DEFAULT_POSITION);                      \
+    prefix##_radar_cylinder->addComponent<component::ModelInstance>(                                                   \
+        ResourceLoader::get<resource::Model>(std::string(RADAR_CYLINDER_MODEL)));                                      \
+                                                                                                                       \
+    /* - cone */                                                                                                       \
+    auto prefix##_radar_cone = prefix##_radar->addChild();                                                             \
+    prefix##_radar_cone->addComponent<component::Transform>(RADAR_CONE_DEFAULT_POSITION, RADAR_CONE_DEFAULT_ROTATION); \
+    prefix##_radar_cone->addComponent<component::ModelInstance>(                                                       \
+        ResourceLoader::get<resource::Model>(std::string(RADAR_CONE_MODEL)))
+
+#pragma endregion ship_definition
 
 Application::Application() : free_view_override_(false), physics_(true)
 {
@@ -96,22 +185,30 @@ Application::Application() : free_view_override_(false), physics_(true)
     Input::bindKey(Input::Action::CycleCameras, GLFW_KEY_V);
     Input::bindKey(Input::Action::TogglePhysics, GLFW_KEY_P);
 
-    // Load assets
-    AssetLoader::getOrLoadFromFile<asset::Model>(SHIP_MODEL);
-    const asset::Model::TextureOverride PLAYER_SHIP_TEXTURE_OVERRIDE = {
+    // Load resources
+    ResourceLoader::getAsset<resource::Model>(SHIP_MODEL);
+    const resource::Model::TextureOverride PLAYER_SHIP_TEXTURE_OVERRIDE = {
         {
             0,
             {
-                {asset::Texture::Type::Albedo,
-                 AssetLoader::getOrLoadFromFile<asset::Texture>("Ship/SailsRopePlayerAlbedo.png")},
-                {asset::Texture::Type::Emissive, nullptr},
+                {resource::Texture::Type::Albedo,
+                 ResourceLoader::getAsset<resource::Texture>("Ship/SailsRopePlayerAlbedo.png")},
+                {resource::Texture::Type::Emissive, nullptr},
             },
         },
     };
 
-    AssetLoader::getOrLoadFromFile<asset::Model>(CANNON_STAND_MODEL);
-    AssetLoader::getOrLoadFromFile<asset::Model>(CANNON_BARREL_MODEL);
-    AssetLoader::getOrLoadFromFile<asset::Model>(CANNONBALL_MODEL);
+    ResourceLoader::getAsset<resource::Model>(CANNON_STAND_MODEL);
+    ResourceLoader::getAsset<resource::Model>(CANNON_BARREL_MODEL);
+    ResourceLoader::getAsset<resource::Model>(CANNONBALL_MODEL);
+
+    ResourceLoader::load<resource::Model>(
+        std::string(RADAR_CYLINDER_MODEL),
+        generateCylinder(RADAR_CYLINDER_HEIGHT, RADAR_CYLINDER_RAIDUS, RADAR_CYLINDER_RESOLUTION),
+        RADAR_CYLINDER_COLOR);
+    ResourceLoader::load<resource::Model>(std::string(RADAR_CONE_MODEL),
+                                          generateCone(RADAR_CONE_HEIGHT, RADAR_CONE_RAIDUS, RADAR_CONE_RESOLUTION),
+                                          RADAR_CONE_COLOR);
 
 #pragma region scene
 
@@ -119,104 +216,56 @@ Application::Application() : free_view_override_(false), physics_(true)
     scene_root_->addComponent<component::Transform>();
 
     // - Free View Camera
-    {
-        auto perspective_camera = scene_root_->addChild();
-        perspective_camera->addComponent<component::Transform>(glm::vec3{5.0f, 5.0f, 5.0f});
-        free_view_camera_ = perspective_camera->addComponent<component::Camera3D>(
-            component::Camera3D::Perspective{
-                .fov = FOV,
-                .near = PERSPECTIVE_NEAR,
-                .far = PERSPECTIVE_FAR,
-            },
-            EAST);
-        free_view_controls_ = perspective_camera->addComponent<component::FreeViewControls>();
-    }
+    auto perspective_camera = scene_root_->addChild();
+    perspective_camera->addComponent<component::Transform>(glm::vec3{5.0f, 5.0f, 5.0f});
+    free_view_camera_ = perspective_camera->addComponent<component::Camera3D>(
+        component::Camera3D::Perspective{
+            .fov = FOV,
+            .near = PERSPECTIVE_NEAR,
+            .far = PERSPECTIVE_FAR,
+        },
+        EAST);
+    free_view_controls_ = perspective_camera->addComponent<component::FreeViewControls>();
 
     // - Top View Camera
-    {
-        auto top_view_camera = scene_root_->addChild();
-        top_view_camera->addComponent<component::Transform>(UP * 80.0f - NORTH * 1.0f);
-        top_view_camera_ = top_view_camera->addComponent<component::Camera3D>(
-            component::Camera3D::Orthographic{
-                .scale = 100,
-                .near = 10.0,
-                .far = 100.0,
-            },
-            DOWN + NORTH * 0.01f);
-    }
+    auto top_view_camera = scene_root_->addChild();
+    top_view_camera->addComponent<component::Transform>(UP * 80.0f - NORTH * 1.0f);
+    top_view_camera_ = top_view_camera->addComponent<component::Camera3D>(
+        component::Camera3D::Orthographic{
+            .scale = 100,
+            .near = 10.0,
+            .far = 100.0,
+        },
+        glm::normalize(DOWN + NORTH * 0.01f));
 
     auto sun = scene_root_->addChild();
     sun->addComponent<component::Transform>(UP * 100.0f - NORTH * 30.0f);
     sun->addComponent<component::LightSource>(rgba(252, 231, 165, 1), rgb(255, 255, 255));
 
-    // - Player Ship
-    {
-        const auto ship_pos = NORTH * 10.0f;
+    // - Player
+    const auto player_ship_position = NORTH * 10.0f;
 
-        auto ship = scene_root_->addChild();
-        ship->addComponent<component::Transform>(ship_pos);
-        ship->addComponent<component::Collider>(SHIP_MODEL_COLLIDER);
-        // Physics::addRigidBody(ship->addComponent<component::RigidBody>(10.0f, glm::mat3(1.0f)));
+    CREATE_SHIP(player, player_ship_position, PLAYER_SHIP_TEXTURE_OVERRIDE);
 
-        auto ship_model = ship->addChild();
-        ship_model->addComponent<component::Transform>(SHIP_MODEL_DEFAULT_TRANSLATE, SHIP_MODEL_DEFAULT_ROTATION,
-                                                       SHIP_MODEL_DEFAULT_SCALE);
-        ship_model->addComponent<component::ModelInstance>(AssetLoader::getOrLoadFromFile<asset::Model>(SHIP_MODEL),
-                                                           PLAYER_SHIP_TEXTURE_OVERRIDE);
+    player_cannon_id_ = player_cannon->getId();
 
-        auto player_target = scene_root_->addChild();
-        auto player_target_transform = player_target->addComponent<component::Transform>();
-        player_target->addComponent<component::Collider>(component::Collider::AABB{
-            .half_size = {0.5f, 0.5f, 0.5f},
-            .center = {},
-        });
+    auto cannon_camera = player_cannon->addChild();
+    cannon_camera->addComponent<component::Transform>(CANNON_CAMERA_OFFSET);
+    cannon_camera_ = cannon_camera->addComponent<component::Camera3D>(
+        component::Camera3D::Perspective{
+            .fov = FOV,
+            .near = PERSPECTIVE_NEAR,
+            .far = PERSPECTIVE_FAR,
+        },
+        EAST);
 
-        auto cannon = ship->addChild();
-        cannon->addComponent<component::Transform>(CANNON_POSITION);
-        player_cannon_id_ = cannon->getId();
+    player_cannon->addComponent<component::CannonPlayerController>(player_cannon_barrel_transform,
+                                                                   player_target_transform, cannon_camera_);
 
-        auto cannon_stand_model = cannon->addChild();
-        cannon_stand_model->addComponent<component::Transform>(CANNON_STAND_MODEl_DEFAULT_TRANSLATE,
-                                                               CANNON_STAND_MODEL_DEFAULT_ROTATION);
-        cannon_stand_model->addComponent<component::ModelInstance>(
-            AssetLoader::getOrLoadFromFile<asset::Model>(CANNON_STAND_MODEL));
+    // - Enemy 1
+    const auto enemy_ship_position = NORTH * -10.0f;
 
-        auto cannon_barrel = cannon->addChild();
-        auto cannon_barrel_transform = cannon_barrel->addComponent<component::Transform>();
-        cannon_barrel_transform->pointToward(EAST);
-
-        auto cannon_barrel_model = cannon_barrel->addChild();
-        cannon_barrel_model->addComponent<component::Transform>(CANNON_BARREL_MODEl_DEFAULT_TRANSLATE,
-                                                                CANNON_BARREL_MODEL_DEFAULT_ROTATION);
-        cannon_barrel_model->addComponent<component::ModelInstance>(
-            AssetLoader::getOrLoadFromFile<asset::Model>(CANNON_BARREL_MODEL));
-
-        auto cannon_camera = cannon->addChild();
-        cannon_camera->addComponent<component::Transform>(CANNON_CAMERA_OFFSET);
-        cannon_camera_ = cannon_camera->addComponent<component::Camera3D>(
-            component::Camera3D::Perspective{
-                .fov = FOV,
-                .near = PERSPECTIVE_NEAR,
-                .far = PERSPECTIVE_FAR,
-            },
-            EAST);
-
-        cannon->addComponent<component::CannonPlayerController>(cannon_barrel_transform, player_target_transform,
-                                                                cannon_camera_);
-    }
-
-    // - Enemy 1 Ship
-    {
-        auto enemy_ship_1 = scene_root_->addChild();
-        enemy_ship_1->addComponent<component::Transform>(NORTH * -10.0f);
-        enemy_ship_1->addComponent<component::Collider>(SHIP_MODEL_COLLIDER);
-
-        auto enemy_ship_1_model = enemy_ship_1->addChild();
-        enemy_ship_1_model->addComponent<component::Transform>(SHIP_MODEL_DEFAULT_TRANSLATE,
-                                                               SHIP_MODEL_DEFAULT_ROTATION, SHIP_MODEL_DEFAULT_SCALE);
-        enemy_ship_1_model->addComponent<component::ModelInstance>(
-            AssetLoader::getOrLoadFromFile<asset::Model>(SHIP_MODEL));
-    }
+    CREATE_SHIP(enemy, enemy_ship_position, resource::Model::TextureOverride{});
 
     // - Water
     auto water = scene_root_->addChild();
@@ -280,7 +329,7 @@ Application::Application() : free_view_override_(false), physics_(true)
         cannonball_model->addComponent<component::Transform>(
             CANNONBALL_MODEL_DEFAULT_TRANSLATE, CANNONBALL_MODEL_DEFAULT_ROTATION, CANNONBALL_MODEL_DEFAULT_SCALE);
         cannonball_model->addComponent<component::ModelInstance>(
-            AssetLoader::getOrLoadFromFile<asset::Model>(CANNONBALL_MODEL));
+            ResourceLoader::getAsset<resource::Model>(CANNONBALL_MODEL));
 
         if (event.shooter == player_cannon_id_)
         {

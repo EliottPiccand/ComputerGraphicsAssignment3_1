@@ -5,7 +5,7 @@
 
 #include <Lib/OpenGL.h>
 
-namespace asset
+namespace resource
 {
 
 class Texture
@@ -32,4 +32,4 @@ class Texture
     const GLuint id_;
 };
 
-} // namespace asset
+} // namespace resource

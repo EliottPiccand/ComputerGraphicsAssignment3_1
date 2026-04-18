@@ -1,4 +1,4 @@
-#include "Assets/Texture.h"
+#include "Resources/Texture.h"
 
 #include <stdexcept>
 
@@ -6,7 +6,7 @@
 
 #include "Utils/Log.h"
 
-using namespace asset;
+using namespace resource;
 
 Texture::Texture(GLuint id) : id_(id)
 {

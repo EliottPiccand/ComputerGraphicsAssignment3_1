@@ -14,6 +14,7 @@
     - damages 3k-15k randomly
 - victory/defeat menu
     - victory state
+- update README
 
 ## Additional Goals
 - flapping flag
