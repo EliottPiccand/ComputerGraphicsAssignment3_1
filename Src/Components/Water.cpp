@@ -1,6 +1,5 @@
 #include "Components/Water.h"
 
-#include <Lib/OpenGL.h>
 
 #include "Utils/Constants.h"
 #include "Utils/MeshPrimitives.h"

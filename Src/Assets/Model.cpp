@@ -6,14 +6,11 @@
 #include <ranges>
 #include <span>
 #include <stdexcept>
-#include <string_view>
 #include <unordered_map>
 
-#include <Lib/OpenGL.h>
 #include <Lib/tiny_gltf.h>
 
 #include "Assets/AssetLoader.h"
-#include "Assets/Texture.h"
 #include "Utils/Log.h"
 #include "Utils/Profiling.h"
 

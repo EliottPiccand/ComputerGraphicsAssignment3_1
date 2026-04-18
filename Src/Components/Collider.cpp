@@ -4,12 +4,10 @@
 #include <stdexcept>
 
 #include <Lib/OpenGL.h>
-#include <variant>
 
 #include "GameObject.h" // IWYU pragma: keep
 #include "Singleton.h"
 #include "Utils/Color.h"
-
 
 using namespace component;
 

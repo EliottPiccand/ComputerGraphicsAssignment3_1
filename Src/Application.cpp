@@ -1,7 +1,6 @@
 #include "Application.h"
 
 #include <numbers>
-#include <optional>
 #include <string_view>
 
 #include <Lib/OpenGL.h>
@@ -10,7 +9,6 @@
 #include "Assets/AssetLoader.h"
 #include "Assets/Model.h"
 #include "Assets/Texture.h"
-#include "Components/Camera3D.h"
 #include "Components/CannonPlayerController.h"
 #include "Components/Collider.h"
 #include "Components/LightSource.h"
@@ -23,7 +21,6 @@
 #include "Events/WindowResized.h"
 #include "Input.h"
 #include "Physics.h"
-#include "Singleton.h"
 #include "Utils/Color.h"
 #include "Utils/Constants.h"
 #include "Utils/Log.h"

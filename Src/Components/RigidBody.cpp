@@ -1,9 +1,7 @@
 #include "Components/RigidBody.h"
 
-#include "Components/Component.h"
 #include "GameObject.h" // IWYU pragma: keep
 #include "Physics.h"
-#include <memory>
 
 using namespace component;
 

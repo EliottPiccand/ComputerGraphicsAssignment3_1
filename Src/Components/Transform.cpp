@@ -1,7 +1,6 @@
 #include "Components/Transform.h"
 
 #include <Lib/OpenGL.h>
-#include <Lib/glm.h>
 
 #include "GameObject.h"
 #include "Utils/Constants.h"
