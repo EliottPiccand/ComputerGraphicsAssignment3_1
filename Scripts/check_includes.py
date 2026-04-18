@@ -5,6 +5,7 @@ SRC_DIR = BASE_DIR / "Src"
 INCLUDE_DIR = BASE_DIR / "Include"
 
 errors = []
+changes_made = False
 
 def check_libs(path, lines):
     edited = False
@@ -25,6 +26,7 @@ def check_libs(path, lines):
 
     if edited:
         path.write_text("\n".join(new_lines) + "\n")
+        changes_made = True
 
 for header in INCLUDE_DIR.rglob("*.h"):
     lines = header.read_text().splitlines()
@@ -67,11 +69,17 @@ for impl in SRC_DIR.rglob("*.cpp"):
     
     if edited:
         impl.write_text("\n".join(lines) + "\n")
+        changes_made = True
 
     check_libs(impl, lines)
+
+if changes_made:
+    print("some files were updated, please recommit with the updated files")
 
 if len(errors) > 0:
     print(f"{len(errors)} errors:")
     for error in errors:
         print(f"- {error}")
+
+if changes_made or len(errors) > 0:
     exit(-1)
