@@ -4,6 +4,7 @@
 
 #include <Lib/stb.h>
 #include "stb/stb_image.h"
+#include "stb/stb_image.h"
 
 #include "Utils/Log.h"
 
