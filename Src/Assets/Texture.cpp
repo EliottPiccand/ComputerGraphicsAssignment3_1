@@ -4,7 +4,6 @@
 
 #include <Lib/stb.h>
 
-
 #include "Utils/Log.h"
 
 using namespace asset;
