@@ -15,7 +15,7 @@ RigidBody::RigidBody(float mass) : RigidBody(mass, glm::mat3(1.0f))
 
 RigidBody::RigidBody(float mass, glm::mat3 inertia)
     : is_static_(false), has_collisions_(true), mass_(mass), inverse_mass_(1.0f / mass),
-      inverse_inertia_(glm::inverse(inertia)), velocity_({}), angular_velocity_({})
+      inverse_inertia_(glm::inverse(inertia)), velocity_({}), angular_velocity_({}), angular_position_({})
 {
 }
 
@@ -38,8 +38,9 @@ void RigidBody::initialize()
 {
     GET_COMPONENT(Collider, collider_, RigidBody);
 
-    const auto &transform = collider_.lock()->transform_.lock()->resolve();
-    position_ = glm::vec3(transform[3]);
+    const auto transform = collider_.lock()->transform_.lock();
+    position_ = glm::vec3(transform->resolve()[3]);
+    angular_position_ = glm::eulerAngles(transform->getRotation());
 
     Physics::addRigidBody(std::dynamic_pointer_cast<RigidBody>(Component::shared_from_this()));
 }

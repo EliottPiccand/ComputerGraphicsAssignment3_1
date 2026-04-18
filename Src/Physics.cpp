@@ -45,7 +45,7 @@ void Physics::update(float delta_time)
         const auto world_position = glm::vec3(world_transform[3]);
         transform->translate(rigid_body->position_ - world_position);
 
-        // TODO rotation
+        transform->setRotation(glm::quat(rigid_body->angular_position_));
         // TODO collision detection + solving
 
         if (collided_with_water)

@@ -354,8 +354,7 @@ Application::Application() : free_view_override_(false), physics_(true)
 
         if (event.shooter == player_cannon_id_)
         {
-            last_cannonball_camera_.value().lock()->lookToward(
-                glm::normalize(event.initial_velocity - UP * glm::dot(UP, event.initial_velocity)));
+            last_cannonball_camera_.value().lock()->lookToward(glm::normalize(event.initial_velocity));
         }
     });
 

@@ -22,6 +22,10 @@ class Transform : public Component
     void rotate(const float angle, const glm::vec3 &axis);
 
     void setPosition(const glm::vec3 &position);
+    void setRotation(const glm::quat &rotation);
+
+    [[nodiscard]] glm::vec3 getPosition() const;
+    [[nodiscard]] glm::quat getRotation() const;
 
     /// axis should be normalized
     void pointToward(const glm::vec3 &direction);

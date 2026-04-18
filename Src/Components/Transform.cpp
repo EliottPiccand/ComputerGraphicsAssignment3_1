@@ -69,6 +69,21 @@ void Transform::setPosition(const glm::vec3 &position)
     position_ = position;
 }
 
+void Transform::setRotation(const glm::quat &rotation)
+{
+    rotation_ = rotation;
+}
+
+glm::vec3 Transform::getPosition() const
+{
+    return position_;
+}
+
+glm::quat Transform::getRotation() const
+{
+    return rotation_;
+}
+
 void Transform::pointToward(const glm::vec3 &direction)
 {
     rotation_ = glm::quatLookAt(direction, UP);
