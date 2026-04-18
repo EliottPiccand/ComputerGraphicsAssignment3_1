@@ -73,6 +73,8 @@ for impl in SRC_DIR.rglob("*.cpp"):
 
     check_libs(impl, lines)
 
+print("changes made", changes_made)
+
 if changes_made:
     print("some files were updated, please recommit with the updated files")
 
