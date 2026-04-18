@@ -1,6 +1,6 @@
 # TODO
 ## Requirements
-- radar as opaque red cone + cylinder at the back
+- ~~radar as opaque red cone + cylinder at the back~~
 - ~~cannonballs parabolic trajectories~~
 - ~~water as triangle quad mesh~~
 - ~~turret view (keyboard update the ship, no turret motion)~~
