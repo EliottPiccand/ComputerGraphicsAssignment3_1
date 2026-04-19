@@ -51,3 +51,5 @@ git checkout v0.13.1
 ## Assets References
 - Ship & Cannon models : [Stylized Pirate Ship by _Comeback_](https://assetstore.unity.com/packages/3d/vehicles/sea/stylized-pirate-ship-200192) (Player's Ship Sails by _Team Baguette_)
 - Cannon ball model : [Ball Pack by _YounGen Tech_](https://assetstore.unity.com/packages/3d/props/ball-pack-446)
+- Rocks : [Fantasy landscape by 
+_Pxltiger_](https://assetstore.unity.com/packages/3d/environments/fantasy-landscape-103573)

@@ -31,6 +31,8 @@
 - moving rudder
 - waves + water interaction
 - foam trail
+- sun
+- birds
 
 ## assignment 3_2
 - wireframe hidden lines removal

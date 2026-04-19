@@ -123,6 +123,16 @@ const component::Animation::Callback RADAR_ANIMATION = [](float delta_time,
     transform->rotate(ROTATION_SPEED * delta_time, UP);
 };
 
+constexpr const std::string_view ROCK_1_MODEL = "Rocks/Rock1.gltf";
+constexpr const std::string_view ROCK_2_MODEL = "Rocks/Rock2.gltf";
+constexpr const std::string_view ROCK_3_MODEL = "Rocks/Rock3.gltf";
+constexpr const glm::vec3 ROCK_MODEL_TRANSLATION = ZERO;
+constexpr const glm::vec3 ROCK_MODEL_ROTATION = {glm::radians(180.0f), 0.0f, 0.0f};
+constexpr const glm::vec3 ROCK_MODEL_SCALE = ONE;
+constexpr const size_t ROCKS_PER_WORLD_SIDE = 24;
+constexpr const float WALL_HEIGHT = 4.5f;
+constexpr const float WALL_INSET = 5.0f;
+
 #pragma endregion model_settings
 
 #pragma region camera_settings
@@ -294,7 +304,6 @@ Application::Application() : free_view_override_(false), physics_(true)
     sun->addComponent<component::LightSource>(rgba(252, 231, 165, 1), rgb(255, 255, 255));
 
 #if defined(DEBUG_SCENE)
-
     // Ship
     auto ship = scene_root_->addChild();
     ship->addComponent<component::Transform>();
@@ -333,7 +342,69 @@ Application::Application() : free_view_override_(false), physics_(true)
     cannon_ball_model->addComponent<component::ModelInstance>(
         ResourceLoader::getAsset<resource::Model>(CANNON_BALL_MODEL));
 
+    // Rock 1
+    auto rock_1 = scene_root_->addChild();
+    rock_1->addComponent<component::Transform>(EAST * 30.0f);
+
+    auto rock_1_model = rock_1->addChild();
+    rock_1_model->addComponent<component::Transform>(ROCK_MODEL_TRANSLATION, ROCK_MODEL_ROTATION, ROCK_MODEL_SCALE);
+    rock_1_model->addComponent<component::ModelInstance>(ResourceLoader::getAsset<resource::Model>(ROCK_1_MODEL));
+
+    // Rock 2
+    auto rock_2 = scene_root_->addChild();
+    rock_2->addComponent<component::Transform>(EAST * 40.0f);
+
+    auto rock_2_model = rock_2->addChild();
+    rock_2_model->addComponent<component::Transform>(ROCK_MODEL_TRANSLATION, ROCK_MODEL_ROTATION, ROCK_MODEL_SCALE);
+    rock_2_model->addComponent<component::ModelInstance>(ResourceLoader::getAsset<resource::Model>(ROCK_2_MODEL));
+
+    // Rock 3
+    auto rock_3 = scene_root_->addChild();
+    rock_3->addComponent<component::Transform>(EAST * 55.0f);
+
+    auto rock_3_model = rock_3->addChild();
+    rock_3_model->addComponent<component::Transform>(ROCK_MODEL_TRANSLATION, ROCK_MODEL_ROTATION, ROCK_MODEL_SCALE);
+    rock_3_model->addComponent<component::ModelInstance>(ResourceLoader::getAsset<resource::Model>(ROCK_3_MODEL));
+
 #else
+    // - World border
+    std::vector<std::shared_ptr<resource::Model>> rocks = {
+        ResourceLoader::getAsset<resource::Model>(ROCK_1_MODEL),  
+        ResourceLoader::getAsset<resource::Model>(ROCK_2_MODEL),  
+        ResourceLoader::getAsset<resource::Model>(ROCK_3_MODEL),  
+    };
+
+    for (size_t i = 0; i < 4; ++i)
+    {
+        bool along_north = (i & 2);
+        bool potitive = (i & 1);
+
+        auto wall = scene_root_->addChild();
+        wall->addComponent<component::Transform>((WORLD_WIDTH / 2.0f - WALL_INSET) * (potitive ? 1.0f : -1.0f) * (along_north ? NORTH : EAST));
+        wall->addComponent<component::Collider>(component::Collider::AABB{
+            .half_size = WALL_HEIGHT / 2.0f * UP + WORLD_WIDTH / 2.0f * (along_north ? EAST : NORTH) + 0.5f * (along_north ? NORTH : EAST),
+            .center = WALL_HEIGHT / 2.0f * UP,
+        });
+        wall->addComponent<component::RigidBody>();
+
+        for (size_t j = 0; j < ROCKS_PER_WORLD_SIDE; ++j)
+        {
+            const float c1 = WORLD_WIDTH * (static_cast<float>(j) / static_cast<float>(ROCKS_PER_WORLD_SIDE - 1) - 0.5f);
+            const float c2 = WORLD_WIDTH / 2.0f;
+            const float east = (potitive ? 1.0f : -1.0f) * (along_north ? c1 : c2);
+            const float north = (potitive ? 1.0f : -1.0f) * (along_north ? c2 : c1);
+
+            std::shared_ptr<resource::Model> random_rock_model = Random::range<decltype(random_rock_model)>(rocks);
+            const float angle = Random::random(0.0f, glm::radians(359.9f));
+
+            auto rock = scene_root_->addChild();
+            rock->addComponent<component::Transform>(east * EAST + north * NORTH, angle * UP);
+
+            auto rock_model = rock->addChild();
+            rock_model->addComponent<component::Transform>(ROCK_MODEL_TRANSLATION, ROCK_MODEL_ROTATION, ROCK_MODEL_SCALE);
+            rock_model->addComponent<component::ModelInstance>(random_rock_model);
+        }
+    }
 
     // - Player
     const auto player_ship_position = EAST * 10.0f;
@@ -467,6 +538,20 @@ Application::Application() : free_view_override_(false), physics_(true)
             last_cannon_ball_camera_.value().lock()->lookToward(glm::normalize(event.initial_velocity));
         }
     });
+#else
+    (void)SHIP_MASS;
+    (void)CANNON_POSITION_IN_SHIP;
+    (void)CANNON_BARREL_POSITION_IN_CANNON;
+    (void)CANNON_BARREL_ROTATION_IN_CANNON;
+    (void)CANNON_BALL_MASS;
+    (void)CANNON_BALL_COLLIDER;
+    (void)RADAR_CYLINDER_MODEL_TRANSLATION;
+    (void)RADAR_CONE_MODEL_POSITION;
+    (void)RADAR_CONE_MODEL_ROTATION;
+    (void)RADAR_POSITION;
+    (void)CANNON_CAMERA_OFFSET;
+    (void)CANNON_BALL_CAMERA_OFFSET;
+    (void)player_id_;
 #endif
 
     Singleton::game_loaded = true;

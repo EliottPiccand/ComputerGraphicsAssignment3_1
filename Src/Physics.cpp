@@ -6,6 +6,7 @@
 
 #include "GameObject.h"
 #include "Utils/Constants.h"
+#include "Utils/Math.h"
 
 void Physics::addRigidBody(std::weak_ptr<component::RigidBody> rigid_body)
 {
@@ -22,10 +23,12 @@ void Physics::addCollider(std::weak_ptr<component::Collider> collider, bool is_w
 
 void Physics::update(float delta_time)
 {
-    const auto water_collider = water_collider_.lock();
     std::erase_if(rigid_bodys_, [](const auto &wp) { return wp.expired(); });
     std::erase_if(colliders_, [](const auto &wp) { return wp.expired(); });
+    
     std::unordered_set<std::shared_ptr<component::Collider>> had_water_collision;
+    
+    const auto water_collider = water_collider_.lock();
 
     for (auto [i, rigid_body_ptr] : rigid_bodys_ | std::views::enumerate)
     {
@@ -52,22 +55,22 @@ void Physics::update(float delta_time)
                                 float mass) { return std::make_tuple(-mass * GRAVITY * UP, glm::vec3{}); });
 
         // Javelin stabilizer
-        // rigid_body->addForce([](const glm::vec3 &velocity, const glm::vec3 &, const glm::vec3 &angular_velocity,
-        //                         const glm::quat &orientation, float) {
-        //     const glm::vec3 forward = getForwardVector(orientation);
+        rigid_body->addForce([](const glm::vec3 &velocity, const glm::vec3 &, const glm::vec3 &angular_velocity,
+                                const glm::quat &orientation, float) {
+            const glm::vec3 forward = getForwardVector(orientation);
 
-        //     const float tail_offset = 1.5f; // tune: distance from CM to tail
-        //     const glm::vec3 application_point = -forward * tail_offset;
+            const float tail_offset = 1.5f; // tune: distance from CM to tail
+            const glm::vec3 application_point = -forward * tail_offset;
 
-        //     const glm::vec3 v_tail = velocity + glm::cross(angular_velocity, application_point);
+            const glm::vec3 v_tail = velocity + glm::cross(angular_velocity, application_point);
 
-        //     const glm::vec3 v_perp = v_tail - glm::dot(v_tail, forward) * forward;
+            const glm::vec3 v_perp = v_tail - glm::dot(v_tail, forward) * forward;
 
-        //     const float drag_coeff = 5.0f; // tune: higher = faster alignment
-        //     const glm::vec3 force = -drag_coeff * v_perp;
+            const float drag_coeff = 5.0f; // tune: higher = faster alignment
+            const glm::vec3 force = -drag_coeff * v_perp;
 
-        //     return std::make_tuple(force, application_point);
-        // });
+            return std::make_tuple(force, application_point);
+        });
 
         rigid_body->updatePhysics(delta_time);
 
@@ -84,6 +87,7 @@ void Physics::update(float delta_time)
     std::vector<std::shared_ptr<GameObject>> to_detach;
     for (size_t i = 0; i < colliders_.size(); ++i) {
         const auto &collider = colliders_[i].lock();
+        
         if (collider->isDisabled())
             continue;
 
