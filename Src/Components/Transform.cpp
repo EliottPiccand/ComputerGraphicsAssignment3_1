@@ -86,7 +86,25 @@ glm::quat Transform::getRotation() const
 
 void Transform::pointToward(const glm::vec3 &direction)
 {
-    rotation_ = glm::quatLookAt(direction, UP);
+    constexpr const float ROTATION_EPSILON = 1e-5f;
+
+    const auto target_forward = glm::normalize(direction);
+    const auto current_forward = glm::normalize(rotation_ * MODEL_FORWARD);
+    const auto rotation_axis = glm::cross(current_forward, target_forward);
+    const auto axis_length = glm::length(rotation_axis);
+
+    if (axis_length < ROTATION_EPSILON)
+    {
+        if (glm::dot(current_forward, target_forward) < 0.0f)
+        {
+            const auto fallback_axis = glm::normalize(rotation_ * MODEL_RIGHT);
+            rotation_ = glm::angleAxis(glm::pi<float>(), fallback_axis) * rotation_;
+        }
+        return;
+    }
+
+    const auto rotation_angle = std::atan2(axis_length, glm::dot(current_forward, target_forward));
+    rotation_ = glm::normalize(glm::angleAxis(rotation_angle, rotation_axis / axis_length) * rotation_);
 }
 
 bool Transform::render() const

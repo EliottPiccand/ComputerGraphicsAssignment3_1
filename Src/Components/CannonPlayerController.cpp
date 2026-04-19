@@ -143,9 +143,10 @@ void CannonPlayerController::update(float delta_time)
 
         // Cannon barrel
         cannonball_initial_velocity_ = getShootingInitialVelocity(target);
-        resolved_transform = transform->resolve();
-        const auto parent_rot = glm::quat_cast(glm::mat3(resolved_transform));
-        const auto local_direction = glm::inverse(parent_rot) * cannonball_initial_velocity_;
+        const auto barrel_parent_opt = barrel_transform->getOwner()->getParent();
+        const auto barrel_parent_transform_opt = barrel_parent_opt.value()->getComponent<Transform>();
+        const auto barrel_parent_rot = glm::quat_cast(glm::mat3(barrel_parent_transform_opt.value()->resolve()));
+        const auto local_direction = glm::inverse(barrel_parent_rot) * cannonball_initial_velocity_;
 
         barrel_transform->pointToward(glm::normalize(local_direction));
 
