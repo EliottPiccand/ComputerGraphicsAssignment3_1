@@ -13,4 +13,4 @@ glm::quat twistAroundAxis(const glm::quat &q, const glm::vec3 &axis);
 /// axis must be normalized
 float angleAroundAxis(const glm::quat &q, const glm::vec3 &axis);
 
-glm::vec3 getForwardVector(const glm::quat &orientation, const glm::vec3 &local_forward = Y);
+glm::vec3 getForwardVector(const glm::quat &orientation, const glm::vec3 &local_forward = MODEL_FORWARD);

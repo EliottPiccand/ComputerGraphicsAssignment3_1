@@ -44,7 +44,7 @@ void Physics::update(float delta_time)
         // Javelin stabilizer
         rigid_body->addForce([](const glm::vec3 &velocity, const glm::vec3 &, const glm::vec3 &angular_velocity,
                                 const glm::quat &orientation, float) {
-            const glm::vec3 forward = getForwardVector(orientation, -Z);
+            const glm::vec3 forward = getForwardVector(orientation);
 
             const float tail_offset = 1.5f; // tune: distance from CM to tail
             const glm::vec3 application_point = -forward * tail_offset;

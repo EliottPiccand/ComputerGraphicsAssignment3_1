@@ -53,7 +53,7 @@ constexpr const glm::vec3 CANNON_BARREL_MODEL_TRANSLATION = ZERO;
 constexpr const glm::vec3 CANNON_BARREL_MODEL_ROTATION = {glm::radians(99.0f), 0.0f, glm::radians(180.0f)};
 constexpr const glm::vec3 CANNON_BARREL_MODEL_SCALE = ONE;
 
-constexpr const glm::vec3 CANNON_POSITION_IN_SHIP = 8.5f * MODEL_FORWARD + 3.7f * MODEL_UP;
+constexpr const glm::vec3 CANNON_POSITION_IN_SHIP = 9.0f * MODEL_FORWARD + 4.0f * MODEL_UP;
 constexpr const glm::vec3 CANNON_BARREL_POSITION_IN_CANNON = 1.0f * MODEL_UP;
 constexpr const glm::vec3 CANNON_BARREL_ROTATION_IN_CANNON = {glm::radians(-90.0f), glm::radians(90.0f), 0.0f};
 
@@ -94,8 +94,8 @@ constexpr const double FOV = 45.0;              // °
 constexpr const double PERSPECTIVE_NEAR = 0.1;  // m
 constexpr const double PERSPECTIVE_FAR = 300.0; // m
 
-constexpr const glm::vec3 CANNON_CAMERA_OFFSET = {1.0f, -4.0f, 1.2f};
-constexpr const glm::vec3 CANNON_BALL_CAMERA_OFFSET = {0.5f, 0.5f, 2.0f};
+constexpr const glm::vec3 CANNON_CAMERA_OFFSET = 1.0f * MODEL_RIGHT + 4.0f * MODEL_BACKWARD + 1.5f * MODEL_UP;
+constexpr const glm::vec3 CANNON_BALL_CAMERA_OFFSET = 2.0f * MODEL_BACKWARD + 0.5f * MODEL_UP + 0.5f * MODEL_RIGHT;
 
 static_assert(PERSPECTIVE_FAR > static_cast<double>(WORLD_WIDTH) * std::numbers::sqrt2,
               "Perspective camera far plan not far enough to see the entire map");
@@ -345,6 +345,7 @@ Application::Application() : free_view_override_(false), physics_(true)
     EventQueue::registerCallback<event::Fire>([this, water_id](const event::Fire &event) {
         if (glm::length(event.initial_velocity) < EPSILON)
         {
+            LOG_DEBUG("fire aborted: no initial velocity");
             return;
         }
 
