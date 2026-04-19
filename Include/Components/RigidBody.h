@@ -28,7 +28,9 @@ class RigidBody : public Component
     RigidBody(float mass, glm::mat3 inertia);
 
     void addForce(Force force);
+    [[nodiscard]] const glm::vec3 &getVelocity() const;
     void setVelocity(const glm::vec3 &velocity);
+    void setOrientation(const glm::quat &orientation);
 
     void initialize() override;
 

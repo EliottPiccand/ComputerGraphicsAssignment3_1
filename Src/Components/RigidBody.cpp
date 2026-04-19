@@ -25,9 +25,19 @@ void RigidBody::addForce(Force force)
     forces_.push_back(force);
 }
 
+const glm::vec3 &RigidBody::getVelocity() const
+{
+    return velocity_;
+}
+
 void RigidBody::setVelocity(const glm::vec3 &velocity)
 {
     velocity_ = velocity;
+}
+
+void RigidBody::setOrientation(const glm::quat &orientation)
+{
+    orientation_ = orientation;
 }
 
 void RigidBody::initialize()

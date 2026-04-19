@@ -36,6 +36,9 @@ class Collider : public Component
 
     Collider(Type type, bool is_water = false);
 
+    void disable();
+    bool isDisabled();
+
     bool collideWith(const Collider &other) const;
     bool collideWithAABB(const Collider &other) const;
 
@@ -57,6 +60,8 @@ class Collider : public Component
 
     Type type_;
     AABB aabb_;
+
+    bool enabled_;
 
     bool is_water_;
     std::vector<CollisionCallback> collision_callbacks_;

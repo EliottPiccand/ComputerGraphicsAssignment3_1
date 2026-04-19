@@ -3,20 +3,8 @@
 #include <memory>
 
 #include "Components/Camera3D.h"
-
-enum class RenderingStyle
-{
-    OpaquePolygon,
-    Wireframe,
-};
-
-enum class View
-{
-    FreeCamera,
-    Top,
-    Cannon,
-    CannonBall,
-};
+#include "Utils/RenderingStyle.h"
+#include "Utils/View.h"
 
 struct Singleton
 {
@@ -25,6 +13,6 @@ struct Singleton
 
     static inline View view;
     static inline std::weak_ptr<component::Camera3D> active_camera;
-    
+
     static inline RenderingStyle rendering_style = RenderingStyle::OpaquePolygon;
 };

@@ -125,21 +125,30 @@ void CannonPlayerController::update(float delta_time)
 
     const auto target_along_north = glm::dot(target, NORTH);
     const auto target_along_east = glm::dot(target, EAST);
-    if (target_along_north < -WORLD_WIDTH / 2.0f || WORLD_WIDTH / 2.0f < target_along_north ||
-        target_along_east < -WORLD_WIDTH / 2.0f || WORLD_WIDTH / 2.0f < target_along_east)
+    const bool target_in_bounds = !(target_along_north < -WORLD_WIDTH / 2.0f || WORLD_WIDTH / 2.0f < target_along_north ||
+                                    target_along_east < -WORLD_WIDTH / 2.0f || WORLD_WIDTH / 2.0f < target_along_east);
+    if (!target_in_bounds)
     {
         aiming_ = false;
         target_moved = false;
     }
 
-    if (target_moved)
+    if (target_in_bounds)
     {
         target -= glm::dot(target, UP) * UP;
-        target_transform_.lock()->setPosition(target);
+        if (target_moved)
+        {
+            target_transform_.lock()->setPosition(target);
+        }
 
         // Cannon stand
         const auto planar_position = position - glm::dot(position, UP) * UP;
-        const auto target_direction = glm::normalize(target - planar_position);
+        const auto target_delta = target - planar_position;
+        if (glm::length(target_delta) <= EPSILON)
+        {
+            return;
+        }
+        const auto target_direction = glm::normalize(target_delta);
 
         const auto cos_target_angle = glm::dot(NORTH, target_direction);
         const auto sin_target_angle = glm::dot(glm::cross(NORTH, target_direction), UP);

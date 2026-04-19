@@ -7,7 +7,7 @@
 #include "Components/Camera3D.h"
 #include "Components/FreeViewControls.h"
 #include "GameObject.h"
-#include "Singleton.h"
+#include "Utils/View.h"
 #include "Window.h"
 
 class Application

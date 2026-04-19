@@ -12,6 +12,7 @@
 #include "Components/LightSource.h"
 #include "Components/ModelInstance.h"
 #include "Components/RigidBody.h"
+#include "Components/ShipPlayerController.h"
 #include "Components/Transform.h"
 #include "Components/Water.h"
 #include "Events/EventQueue.h"
@@ -29,6 +30,7 @@
 #include "Utils/MeshPrimitives.h"
 #include "Utils/Profiling.h"
 #include "Utils/Random.h"
+#include "Utils/RenderingStyle.h"
 
 // #define DEBUG_SCENE
 
@@ -38,6 +40,7 @@ constexpr const std::string_view SHIP_MODEL = "Ship/Ship.gltf";
 constexpr const glm::vec3 SHIP_MODEL_TRANSLATION = -0.5f * MODEL_RIGHT;
 constexpr const glm::vec3 SHIP_MODEL_ROTATION = {glm::radians(90.0f), 0.0f, glm::radians(180.0f)};
 constexpr const glm::vec3 SHIP_MODEL_SCALE = 0.5f * ONE;
+constexpr const float SHIP_MASS = 200.0f; // kg
 const component::Collider::ConvexPolyhedron SHIP_MODEL_COLLIDER = {
     .vertices =
         {
@@ -83,7 +86,7 @@ constexpr const glm::vec3 CANNON_BARREL_MODEL_TRANSLATION = ZERO;
 constexpr const glm::vec3 CANNON_BARREL_MODEL_ROTATION = {glm::radians(99.0f), 0.0f, glm::radians(180.0f)};
 constexpr const glm::vec3 CANNON_BARREL_MODEL_SCALE = ONE;
 
-constexpr const glm::vec3 CANNON_POSITION_IN_SHIP = 9.0f * MODEL_FORWARD + 4.0f * MODEL_UP;
+constexpr const glm::vec3 CANNON_POSITION_IN_SHIP = 9.0f * MODEL_FORWARD + 3.7f * MODEL_UP;
 constexpr const glm::vec3 CANNON_BARREL_POSITION_IN_CANNON = 1.0f * MODEL_UP;
 constexpr const glm::vec3 CANNON_BARREL_ROTATION_IN_CANNON = {glm::radians(-90.0f), glm::radians(90.0f), 0.0f};
 
@@ -142,6 +145,7 @@ static_assert(PERSPECTIVE_FAR > static_cast<double>(WORLD_WIDTH) * std::numbers:
     auto prefix##_ship = scene_root_->addChild();                                                                      \
     prefix##_ship->addComponent<component::Transform>(position);                                                       \
     prefix##_ship->addComponent<component::Collider>(SHIP_MODEL_COLLIDER);                                             \
+    prefix##_ship->addComponent<component::RigidBody>(SHIP_MASS);                                                      \
                                                                                                                        \
     /* ship model */                                                                                                   \
     auto prefix##_ship_model = prefix##_ship->addChild();                                                              \
@@ -350,6 +354,8 @@ Application::Application() : free_view_override_(false), physics_(true)
 
     player_cannon->addComponent<component::CannonPlayerController>(player_cannon_barrel_transform,
                                                                    player_target_transform, cannon_camera_);
+
+    player_ship->addComponent<component::ShipPlayerController>();
 
     // - Enemy 1
     const auto enemy_ship_position = EAST * -10.0f;

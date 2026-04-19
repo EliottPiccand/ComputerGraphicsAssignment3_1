@@ -200,8 +200,18 @@ bool collide(const Collider::ConvexPolyhedron &a, const Collider::ConvexPolyhedr
 
 } // namespace
 
-Collider::Collider(Type type, bool is_water) : type_(type), is_water_(is_water)
+Collider::Collider(Type type, bool is_water) : type_(type), enabled_(true), is_water_(is_water)
 {
+}
+
+void Collider::disable()
+{
+    enabled_ = false;
+}
+
+bool Collider::isDisabled()
+{
+    return !enabled_;
 }
 
 bool Collider::collideWith(const Collider &other) const
