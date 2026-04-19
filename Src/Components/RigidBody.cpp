@@ -25,11 +25,6 @@ void RigidBody::addForce(Force force)
     forces_.push_back(force);
 }
 
-void RigidBody::addCollisionCallback(CollisionCallback callback)
-{
-    collision_callbacks_.push_back(callback);
-}
-
 void RigidBody::setVelocity(const glm::vec3 &velocity)
 {
     velocity_ = velocity;

@@ -7,6 +7,7 @@
 #include "Components/Camera3D.h"
 #include "Components/Component.h"
 #include "Components/Transform.h"
+#include "GameObject.h"
 
 namespace component
 {
@@ -14,7 +15,8 @@ namespace component
 class CannonPlayerController : public Component
 {
   public:
-    CannonPlayerController(std::weak_ptr<Transform> cannon_barrel_transform, std::weak_ptr<Transform> target_transform, std::weak_ptr<Camera3D> camera);
+    CannonPlayerController(std::weak_ptr<Transform> cannon_barrel_transform, std::weak_ptr<Transform> target_transform,
+                           std::weak_ptr<Camera3D> camera);
 
     void initialize() override;
     void update(float delta_time) override;
@@ -28,9 +30,10 @@ class CannonPlayerController : public Component
     std::weak_ptr<Transform> target_transform_;
 
     std::weak_ptr<Camera3D> camera_;
-    
+
     bool aiming_;
-    glm::vec3 cannonball_initial_velocity_;
+    glm::vec3 cannon_ball_initial_velocity_;
+    GameObjectId shooter_id_;
 };
 
 } // namespace component

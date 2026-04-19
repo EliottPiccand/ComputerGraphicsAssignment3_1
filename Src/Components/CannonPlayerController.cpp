@@ -5,6 +5,7 @@
 #include <Lib/OpenGL.h>
 #include <Lib/glfw.h>
 
+#include "Components/Collider.h"
 #include "Events/EventQueue.h"
 #include "Events/Fire.h"
 #include "GameObject.h" // IWYU pragma: keep
@@ -31,6 +32,10 @@ CannonPlayerController::CannonPlayerController(std::weak_ptr<Transform> cannon_b
 void CannonPlayerController::initialize()
 {
     GET_COMPONENT(Transform, transform_, CannonPlayerController);
+
+    std::shared_ptr<Collider> shooter_collider;
+    GET_COMPONENT(Collider, shooter_collider, CannonPlayerController);
+    shooter_id_ = shooter_collider->getOwner()->getId();
 }
 
 glm::vec3 CannonPlayerController::getShootingInitialVelocity(const glm::vec3 &target) const
@@ -147,16 +152,16 @@ void CannonPlayerController::update(float delta_time)
         transform->rotate(target_angle - current_angle, UP);
 
         // Cannon barrel
-        cannonball_initial_velocity_ = getShootingInitialVelocity(target);
+        cannon_ball_initial_velocity_ = getShootingInitialVelocity(target);
         const auto barrel_parent_opt = barrel_transform->getOwner()->getParent();
         const auto barrel_parent_transform_opt = barrel_parent_opt.value()->getComponent<Transform>();
         const auto barrel_parent_rot = glm::quat_cast(glm::mat3(barrel_parent_transform_opt.value()->resolve()));
-        const auto local_direction = glm::inverse(barrel_parent_rot) * cannonball_initial_velocity_;
+        const auto local_direction = glm::inverse(barrel_parent_rot) * cannon_ball_initial_velocity_;
 
         barrel_transform->pointToward(glm::normalize(local_direction));
 
         // Camera
-        const auto planar_velocity = cannonball_initial_velocity_ - UP * glm::dot(UP, cannonball_initial_velocity_);
+        const auto planar_velocity = cannon_ball_initial_velocity_ - UP * glm::dot(UP, cannon_ball_initial_velocity_);
         if (glm::length(planar_velocity) > EPSILON)
         {
             camera_.lock()->lookToward(glm::normalize(planar_velocity));
@@ -168,7 +173,8 @@ void CannonPlayerController::update(float delta_time)
     {
         if (aiming_)
         {
-            EventQueue::post<event::Fire>(glm::vec3(barrel_transform_.lock()->resolve()[3]), cannonball_initial_velocity_, getOwner()->getId());
+            EventQueue::post<event::Fire>(glm::vec3(barrel_transform_.lock()->resolve()[3]),
+                                          cannon_ball_initial_velocity_, shooter_id_);
             aiming_ = false;
         }
     }
@@ -183,7 +189,7 @@ bool CannonPlayerController::render() const
         Singleton::active_camera.lock()->bind();
 
         const auto position = glm::vec3(barrel_transform_.lock()->resolve()[3]);
-        const auto trajectory = Physics::simulateCannonballTrajectory(position, cannonball_initial_velocity_);
+        const auto trajectory = Physics::simulateCannonballTrajectory(position, cannon_ball_initial_velocity_);
 
         constexpr const GLfloat material[] = {_v4(color::BLUE)};
         glMaterialfv(GL_FRONT, GL_AMBIENT, material);

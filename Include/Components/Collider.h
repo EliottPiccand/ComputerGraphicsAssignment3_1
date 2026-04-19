@@ -2,11 +2,13 @@
 
 #include <memory>
 #include <variant>
+#include <vector>
 
 #include <Lib/glm.h>
 
 #include "Components/Component.h"
 #include "Components/Transform.h"
+#include "GameObject.h"
 
 class Physics;
 
@@ -24,12 +26,24 @@ class Collider : public Component
         glm::vec3 center;
     };
 
-    using Type = std::variant<AABB>;
+    struct ConvexPolyhedron
+    {
+        std::vector<glm::vec3> vertices;
+        std::vector<glm::uvec3> faces;
+    };
 
-    Collider(Type type);
+    using Type = std::variant<AABB, ConvexPolyhedron>;
+
+    Collider(Type type, bool is_water = false);
 
     bool collideWith(const Collider &other) const;
     bool collideWithAABB(const Collider &other) const;
+
+    /// return whether the object should be detached
+    using CollisionCallback = std::function<bool(GameObjectId)>;
+    void addCollisionCallback(CollisionCallback callback);
+    /// return whether the object should be detached
+    bool callCollisionCallbacks(GameObjectId game_object_id) const;
 
     void initialize() override;
     void update(float delta_time) override;
@@ -43,6 +57,9 @@ class Collider : public Component
 
     Type type_;
     AABB aabb_;
+
+    bool is_water_;
+    std::vector<CollisionCallback> collision_callbacks_;
 };
 
 } // namespace component

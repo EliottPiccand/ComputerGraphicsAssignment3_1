@@ -38,9 +38,39 @@ constexpr const std::string_view SHIP_MODEL = "Ship/Ship.gltf";
 constexpr const glm::vec3 SHIP_MODEL_TRANSLATION = -0.5f * MODEL_RIGHT;
 constexpr const glm::vec3 SHIP_MODEL_ROTATION = {glm::radians(90.0f), 0.0f, glm::radians(180.0f)};
 constexpr const glm::vec3 SHIP_MODEL_SCALE = 0.5f * ONE;
-constexpr const component::Collider::AABB SHIP_MODEL_COLLIDER = {
-    .half_size = 6.0f * MODEL_RIGHT + 12.0f * MODEL_FORWARD + 3.0f * MODEL_UP,
-    .center = 3.0f * MODEL_UP,
+const component::Collider::ConvexPolyhedron SHIP_MODEL_COLLIDER = {
+    .vertices =
+        {
+            {-2.5f, -10.0f, 5.5f},
+            {2.5f, -10.0f, 5.5f},
+            {-2.5f, -10.0f, 0.0f},
+            {2.5f, -10.0f, 0.0f},
+            {-2.5f, 8.0f, 4.5f},
+            {2.5f, 8.0f, 4.5f},
+            {-2.5f, 8.0f, 0.0f},
+            {2.5f, 8.0f, 0.0f},
+            {0.0f, 12.0f, 4.5f},
+            {0.0f, 11.5f, 0.5f},
+        },
+    .faces =
+        {
+            {0, 1, 3},
+            {0, 3, 2},
+            {0, 2, 6},
+            {0, 6, 4},
+            {1, 5, 7},
+            {1, 7, 3},
+            {0, 4, 5},
+            {0, 5, 1},
+            {2, 3, 7},
+            {2, 7, 6},
+            {4, 6, 9},
+            {4, 9, 8},
+            {5, 8, 9},
+            {5, 9, 7},
+            {6, 7, 9},
+            {4, 8, 5},
+        },
 };
 
 constexpr const std::string_view CANNON_STAND_MODEL = "CannonStand/CannonStand.gltf";
@@ -62,6 +92,10 @@ constexpr const glm::vec3 CANNON_BALL_MODEL_TRANSLATION = ZERO;
 constexpr const glm::vec3 CANNON_BALL_MODEL_ROTATION = {0.0f, 0.0f, glm::radians(180.0f)};
 constexpr const glm::vec3 CANNON_BALL_MODEL_SCALE = 0.4f * ONE;
 constexpr const float CANNON_BALL_MASS = 10.0f;
+constexpr const component::Collider::AABB CANNON_BALL_COLLIDER = {
+    .half_size = 0.2f * ONE,
+    .center = ZERO,
+};
 
 constexpr const std::string_view RADAR_CYLINDER_MODEL = "RadarCylinder";
 constexpr const float RADAR_CYLINDER_HEIGHT = 1.0f;
@@ -120,8 +154,8 @@ static_assert(PERSPECTIVE_FAR > static_cast<double>(WORLD_WIDTH) * std::numbers:
     auto prefix##_target = scene_root_->addChild();                                                                    \
     auto prefix##_target_transform = prefix##_target->addComponent<component::Transform>();                            \
     prefix##_target->addComponent<component::Collider>(component::Collider::AABB{                                      \
-        .half_size = {0.5f, 0.5f, 0.5f},                                                                               \
-        .center = {},                                                                                                  \
+        .half_size = 0.5f * ONE,                                                                                       \
+        .center = ZERO,                                                                                                \
     });                                                                                                                \
                                                                                                                        \
     /* cannon */                                                                                                       \
@@ -302,7 +336,7 @@ Application::Application() : free_view_override_(false), physics_(true)
 
     CREATE_SHIP(player, player_ship_position, PLAYER_SHIP_TEXTURE_OVERRIDE);
 
-    player_cannon_id_ = player_cannon->getId();
+    player_id_ = player_ship->getId();
 
     auto cannon_camera = player_cannon->addChild();
     cannon_camera->addComponent<component::Transform>(CANNON_CAMERA_OFFSET);
@@ -327,10 +361,12 @@ Application::Application() : free_view_override_(false), physics_(true)
     // - Water
     auto water = scene_root_->addChild();
     water->addComponent<component::Transform>(glm::vec3{}, glm::vec3{}, glm::vec3{1.0f, 1.0f, 1.0f});
-    Physics::water_collider_ = water->addComponent<component::Collider>(component::Collider::AABB{
-        .half_size = {WORLD_WIDTH / 2.0f, WORLD_WIDTH / 2.0f, 0.5f},
-        .center = {0.0f, 0.0f, -0.5f},
-    });
+    water->addComponent<component::Collider>(
+        component::Collider::AABB{
+            .half_size = {WORLD_WIDTH / 2.0f, WORLD_WIDTH / 2.0f, 0.5f},
+            .center = {0.0f, 0.0f, -0.5f},
+        },
+        true);
     water->addComponent<component::Water>();
 
 #pragma endregion scene
@@ -338,7 +374,7 @@ Application::Application() : free_view_override_(false), physics_(true)
     restart();
     scene_root_->initialize();
 
-    LOG_DEBUG("cannonballs initial velocity: {} m/s", INITIAL_CANNON_BALL_VELOCITY);
+    LOG_DEBUG("cannon_balls initial velocity: {} m/s", INITIAL_CANNON_BALL_VELOCITY);
 
 #if !defined(DEBUG_SCENE)
     const auto water_id = water->getId();
@@ -351,21 +387,26 @@ Application::Application() : free_view_override_(false), physics_(true)
 
         LOG_DEBUG("fire");
 
-        auto cannonball = scene_root_->addChild();
-        std::weak_ptr<GameObject> weak_cannonball = cannonball;
-        cannonball->addComponent<component::Transform>(event.position)
+        auto cannon_ball = scene_root_->addChild();
+        std::weak_ptr<GameObject> weak_cannon_ball = cannon_ball;
+
+        cannon_ball->addComponent<component::Transform>(event.position)
             ->pointToward(glm::normalize(event.initial_velocity));
-        cannonball->addComponent<component::Collider>(component::Collider::AABB{
-            .half_size = {0.5f, 0.5f, 0.5f},
-            .center = {},
-        });
-        auto rigid_body = cannonball->addComponent<component::RigidBody>(CANNON_BALL_MASS);
-        rigid_body->addCollisionCallback([this, weak_cannonball, water_id](const GameObjectId id) {
-            if (last_cannonball_camera_.has_value() &&
-                weak_cannonball.lock()->getId() ==
-                    last_cannonball_camera_.value().lock()->getOwner()->getParent().value()->getId())
+
+        auto cannon_ball_collider = cannon_ball->addComponent<component::Collider>(CANNON_BALL_COLLIDER);
+        const auto shooter_id = event.shooter;
+        cannon_ball_collider->addCollisionCallback([this, weak_cannon_ball, water_id,
+                                                    shooter_id](const GameObjectId id) {
+            if (id == shooter_id)
             {
-                last_cannonball_camera_ = std::nullopt;
+                return false;
+            }
+
+            if (last_cannon_ball_camera_.has_value() &&
+                weak_cannon_ball.lock()->getId() ==
+                    last_cannon_ball_camera_.value().lock()->getOwner()->getParent().value()->getId())
+            {
+                last_cannon_ball_camera_ = std::nullopt;
                 if (main_view_ == View::CannonBall)
                 {
                     main_view_ = View::Cannon;
@@ -375,26 +416,30 @@ Application::Application() : free_view_override_(false), physics_(true)
 
             if (id == water_id)
             {
-                weak_cannonball.lock()->detach();
+                LOG_DEBUG("ploof");
             }
             else
             {
-                LOG_WARNING("cannonball collided with game object {} but nothing happend", id);
+                LOG_WARNING("cannon ball collided with game object {} but nothing happend, cannon ball destroyed", id);
             }
+
+            return true;
         });
+
+        auto rigid_body = cannon_ball->addComponent<component::RigidBody>(CANNON_BALL_MASS);
         rigid_body->setVelocity(event.initial_velocity);
 
-        auto cannonball_model = cannonball->addChild();
-        cannonball_model->addComponent<component::Transform>(CANNON_BALL_MODEL_TRANSLATION, CANNON_BALL_MODEL_ROTATION,
-                                                             CANNON_BALL_MODEL_SCALE);
-        cannonball_model->addComponent<component::ModelInstance>(
+        auto cannon_ball_model = cannon_ball->addChild();
+        cannon_ball_model->addComponent<component::Transform>(CANNON_BALL_MODEL_TRANSLATION, CANNON_BALL_MODEL_ROTATION,
+                                                              CANNON_BALL_MODEL_SCALE);
+        cannon_ball_model->addComponent<component::ModelInstance>(
             ResourceLoader::getAsset<resource::Model>(CANNON_BALL_MODEL));
 
-        if (event.shooter == player_cannon_id_)
+        if (event.shooter == player_id_)
         {
-            auto cannonball_camera = cannonball->addChild();
-            cannonball_camera->addComponent<component::Transform>(CANNON_BALL_CAMERA_OFFSET);
-            last_cannonball_camera_ = {cannonball_camera->addComponent<component::Camera3D>(
+            auto cannon_ball_camera = cannon_ball->addChild();
+            cannon_ball_camera->addComponent<component::Transform>(CANNON_BALL_CAMERA_OFFSET);
+            last_cannon_ball_camera_ = {cannon_ball_camera->addComponent<component::Camera3D>(
                 component::Camera3D::Perspective{
                     .fov = FOV,
                     .near = PERSPECTIVE_NEAR,
@@ -409,11 +454,11 @@ Application::Application() : free_view_override_(false), physics_(true)
             }
         }
 
-        cannonball->initialize();
+        cannon_ball->initialize();
 
-        if (event.shooter == player_cannon_id_)
+        if (event.shooter == player_id_)
         {
-            last_cannonball_camera_.value().lock()->lookToward(glm::normalize(event.initial_velocity));
+            last_cannon_ball_camera_.value().lock()->lookToward(glm::normalize(event.initial_velocity));
         }
     });
 #endif
@@ -489,7 +534,7 @@ void Application::updateActiveView()
         Singleton::active_camera = cannon_camera_;
         break;
     case View::CannonBall:
-        Singleton::active_camera = last_cannonball_camera_.value();
+        Singleton::active_camera = last_cannon_ball_camera_.value();
         break;
     }
 }
@@ -559,7 +604,7 @@ void Application::update(float delta_time)
             LOG_WARNING("This should not be reachable: main_view_ should never be View::FreeCamera");
             break;
         case View::Top:
-            main_view_ = last_cannonball_camera_.has_value() ? View::CannonBall : View::Cannon;
+            main_view_ = last_cannon_ball_camera_.has_value() ? View::CannonBall : View::Cannon;
             break;
         case View::Cannon:
             [[fallthrough]];

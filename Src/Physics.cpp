@@ -2,6 +2,7 @@
 
 #include <ranges>
 #include <tuple>
+#include <unordered_set>
 
 #include "GameObject.h"
 #include "Utils/Constants.h"
@@ -12,10 +13,20 @@ void Physics::addRigidBody(std::weak_ptr<component::RigidBody> rigid_body)
     rigid_bodys_.push_back(rigid_body);
 }
 
+void Physics::addCollider(std::weak_ptr<component::Collider> collider, bool is_water)
+{
+    if (is_water)
+        water_collider_ = collider;
+    else
+        colliders_.push_back(collider);
+}
+
 void Physics::update(float delta_time)
 {
     const auto water_collider = water_collider_.lock();
     std::erase_if(rigid_bodys_, [](const auto &wp) { return wp.expired(); });
+    std::erase_if(colliders_, [](const auto &wp) { return wp.expired(); });
+    std::unordered_set<std::shared_ptr<component::Collider>> had_water_collision;
 
     for (auto [i, rigid_body_ptr] : rigid_bodys_ | std::views::enumerate)
     {
@@ -28,11 +39,11 @@ void Physics::update(float delta_time)
             continue;
         }
 
-        bool collided_with_water = false;
         if (collider->collideWith(*water_collider))
         {
-            collided_with_water = true;
+            had_water_collision.insert(collider);
 
+            // Archimedes' force simulation
             rigid_body->addForce([](const glm::vec3 &, const glm::vec3 &, const glm::vec3 &, const glm::quat &,
                                     float mass) { return std::make_tuple(1.05f * mass * GRAVITY * UP, glm::vec3{}); });
         }
@@ -68,16 +79,41 @@ void Physics::update(float delta_time)
 
         transform->setRotation(rigid_body->orientation_);
         // TODO collision detection + solving
+    }
 
-        if (collided_with_water)
+    const auto water_id = water_collider->getOwner()->getId();
+    std::vector<std::shared_ptr<GameObject>> to_detach;
+    for (size_t i = 0; i < colliders_.size(); ++i)
+    {
+        const auto collider = colliders_[i].lock();
+        if (!collider)
+            continue;
+
+        if (had_water_collision.contains(collider))
         {
-            const auto water_id = water_collider->getOwner()->getId();
+            if (collider->callCollisionCallbacks(water_id))
+                to_detach.push_back(collider->getOwner());
+        }
 
-            for (const auto &callback : rigid_body->collision_callbacks_)
+        for (size_t j = i + 1; j < colliders_.size(); ++j)
+        {
+            const auto other_collider = colliders_[j].lock();
+            if (!other_collider)
+                continue;
+
+            if (collider->collideWith(*other_collider))
             {
-                callback(water_id);
+                if (collider->callCollisionCallbacks(other_collider->getOwner()->getId()))
+                    to_detach.push_back(collider->getOwner());
+                if (other_collider->callCollisionCallbacks(collider->getOwner()->getId()))
+                    to_detach.push_back(other_collider->getOwner());
             }
         }
+    }
+
+    for (const auto &game_object : to_detach)
+    {
+        game_object->detach();
     }
 }
 

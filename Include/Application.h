@@ -30,11 +30,11 @@ class Application
     View main_view_;
     std::weak_ptr<component::Camera3D> top_view_camera_;
     std::weak_ptr<component::Camera3D> cannon_camera_;
-    std::optional<std::weak_ptr<component::Camera3D>> last_cannonball_camera_;
+    std::optional<std::weak_ptr<component::Camera3D>> last_cannon_ball_camera_;
 
     bool physics_;
 
-    GameObjectId player_cannon_id_;
+    GameObjectId player_id_;
 
     void initializeOpenGL();
 
