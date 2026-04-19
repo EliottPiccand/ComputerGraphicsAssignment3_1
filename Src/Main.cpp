@@ -28,7 +28,7 @@ int main()
             #error "TRACY_ENABLE must not be defined in Release mode"
         #endif
 
-        LOG_INFO("Running in Release Mode");
+        LOG_INFO("running in Release Mode");
 
     #elif defined(OE_DEBUG)
 
@@ -40,7 +40,7 @@ int main()
             #error "TRACY_ENABLE must not be defined in Debug mode"
         #endif
 
-        LOG_INFO("Running in Debug Mode");
+        LOG_INFO("running in Debug Mode");
 
     #elif defined(OE_PROFILING)
 
@@ -52,7 +52,7 @@ int main()
             #error "TRACY_ENABLE must be defined in Profiling mode"
         #endif
 
-        LOG_INFO("Running in Profiling Mode");
+        LOG_INFO("running in Profiling Mode");
 
     #endif
 

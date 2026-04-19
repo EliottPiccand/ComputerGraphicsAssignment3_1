@@ -1,7 +1,8 @@
 #include "Components/ShipAIController.h"
 
-#include <Lib/OpenGL.h>
 #include <algorithm>
+
+#include <Lib/OpenGL.h>
 
 #include "Singleton.h"
 #include "Utils/Color.h"

@@ -5,9 +5,9 @@
 - ~~water as triangle quad mesh~~
 - ~~turret view (keyboard update the ship, no turret motion)~~
 - ~~cannonball view (above and beyond the cannonball, facing forward)~~
-- at least 2 enemies
+- ~~at least 2 enemies~~
     - ~~move~~
-    - shoot
+    - ~~shoot~~
 - hp system
     - 24k hp
     - health display
@@ -16,6 +16,8 @@
     - victory state
 - collisions
 - update README
+
+- make cannon balls bigger in top view
 
 ## Additional Goals
 - flapping flag

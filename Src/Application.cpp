@@ -7,6 +7,7 @@
 #include <Lib/glm.h>
 
 #include "Components/Animation.h"
+#include "Components/CannonAIController.h"
 #include "Components/CannonPlayerController.h"
 #include "Components/Collider.h"
 #include "Components/LightSource.h"
@@ -130,9 +131,6 @@ constexpr const std::string_view ROCK_3_MODEL = "Rocks/Rock3.gltf";
 constexpr const glm::vec3 ROCK_MODEL_TRANSLATION = ZERO;
 constexpr const glm::vec3 ROCK_MODEL_ROTATION = {glm::radians(180.0f), 0.0f, 0.0f};
 constexpr const glm::vec3 ROCK_MODEL_SCALE = ONE;
-constexpr const size_t ROCKS_PER_WORLD_SIDE = 24;
-constexpr const float WALL_HEIGHT = 4.5f;
-constexpr const float WALL_INSET = 5.0f;
 
 #pragma endregion model_settings
 
@@ -222,6 +220,27 @@ static_assert(PERSPECTIVE_FAR > static_cast<double>(WORLD_WIDTH) * std::numbers:
 
 #pragma endregion ship_definition
 
+#pragma region game_contants
+
+constexpr const size_t ROCKS_PER_WORLD_SIDE = 24;
+constexpr const float WALL_HEIGHT = 4.5f;
+constexpr const float WALL_INSET = 5.0f;
+
+constexpr const float SPAWN_LOCATION_INSET = 20.0f;
+constexpr const std::array SPAWN_LOCATIONS = {
+    (WORLD_WIDTH / 2.0f - SPAWN_LOCATION_INSET) * NORTH + (WORLD_WIDTH / 2.0f - SPAWN_LOCATION_INSET) * EAST,
+    (WORLD_WIDTH / 2.0f - SPAWN_LOCATION_INSET) * SOUTH + (WORLD_WIDTH / 2.0f - SPAWN_LOCATION_INSET) * EAST,
+    (WORLD_WIDTH / 2.0f - SPAWN_LOCATION_INSET) * SOUTH + (WORLD_WIDTH / 2.0f - SPAWN_LOCATION_INSET) * WEST,
+    (WORLD_WIDTH / 2.0f - SPAWN_LOCATION_INSET) * NORTH + (WORLD_WIDTH / 2.0f - SPAWN_LOCATION_INSET) * WEST,
+    ZERO,
+};
+
+constexpr const size_t ENEMY_COUNT = 2;
+
+static_assert(ENEMY_COUNT < SPAWN_LOCATIONS.size(), "not enough spawn location for every enemies");
+
+#pragma endregion game_contants
+
 Application::Application() : free_view_override_(false), physics_(true)
 {
     ProfileScope;
@@ -249,7 +268,7 @@ Application::Application() : free_view_override_(false), physics_(true)
     Input::bindKey(Input::Action::TogglePhysics, GLFW_KEY_P);
 
     // Load resources
-    ResourceLoader::getAsset<resource::Model>(SHIP_MODEL);
+    LOG_INFO("loading assets...");
     const resource::Model::TextureOverride PLAYER_SHIP_TEXTURE_OVERRIDE = {
         {
             0,
@@ -261,8 +280,6 @@ Application::Application() : free_view_override_(false), physics_(true)
         },
     };
 
-    ResourceLoader::getAsset<resource::Model>(CANNON_STAND_MODEL);
-    ResourceLoader::getAsset<resource::Model>(CANNON_BARREL_MODEL);
     ResourceLoader::getAsset<resource::Model>(CANNON_BALL_MODEL);
 
     ResourceLoader::load<resource::Model>(
@@ -413,8 +430,11 @@ Application::Application() : free_view_override_(false), physics_(true)
         }
     }
 
+    auto spawn_locations = SPAWN_LOCATIONS | std::ranges::to<std::vector>();
+
     // - Player
-    const auto player_ship_position = EAST * 10.0f;
+    const auto player_ship_position = Random::pop(spawn_locations);
+    LOG_DEBUG("player position: {} {} {}", _v3(player_ship_position));
 
     CREATE_SHIP(player, player_ship_position, PLAYER_SHIP_TEXTURE_OVERRIDE);
 
@@ -435,21 +455,36 @@ Application::Application() : free_view_override_(false), physics_(true)
 
     player_ship->addComponent<component::ShipPlayerController>();
 
-    // - Enemy 1
-    const auto enemy_ship_position = EAST * -10.0f;
+    // - Enemies
+    for (size_t i = 0; i < ENEMY_COUNT; ++i)
+    {
+        const auto enemy_ship_position = Random::pop(spawn_locations);
+        LOG_DEBUG("enemy {} position: {} {} {}", i, _v3(enemy_ship_position));
 
-    CREATE_SHIP(enemy, enemy_ship_position, resource::Model::TextureOverride{});
+        CREATE_SHIP(enemy, enemy_ship_position, resource::Model::TextureOverride{});
 
-    auto enemy_ship_target = scene_root_->addChild();
-    auto enemy_ship_target_transform = enemy_ship_target->addComponent<component::Transform>();
-    enemy_ship_target
-        ->addComponent<component::Collider>(component::Collider::AABB{
-            .half_size = 0.5f * ONE,
-            .center = ZERO,
-        })
-        ->disable();
+        auto enemy_ship_target = scene_root_->addChild();
+        auto enemy_ship_target_transform = enemy_ship_target->addComponent<component::Transform>();
+        enemy_ship_target
+            ->addComponent<component::Collider>(component::Collider::AABB{
+                .half_size = 0.5f * ONE,
+                .center = ZERO,
+            })
+            ->disable();
 
-    enemy_ship->addComponent<component::ShipAIController>(enemy_ship_target_transform);
+        auto enemy_ship_target_target = scene_root_->addChild();
+        auto enemy_ship_target_target_transform = enemy_ship_target_target->addComponent<component::Transform>();
+        enemy_ship_target_target
+            ->addComponent<component::Collider>(component::Collider::AABB{
+                .half_size = 0.5f * ONE,
+                .center = ZERO,
+            })
+            ->disable();
+
+        enemy_ship->addComponent<component::ShipAIController>(enemy_ship_target_transform);
+        enemy_cannon->addComponent<component::CannonAIController>(enemy_cannon_barrel_transform, enemy_target_transform,
+                                                                  enemy_ship_target_target_transform);
+    }
 
 #endif
 
@@ -465,6 +500,8 @@ Application::Application() : free_view_override_(false), physics_(true)
     water->addComponent<component::Water>();
 
 #pragma endregion scene
+
+    LOG_INFO("assets loaded");
 
     restart();
     scene_root_->initialize();

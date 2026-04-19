@@ -35,10 +35,10 @@ template <typename T, RangeOf<T> R> const T &Random::range(const R &range)
 
 template <typename T> T Random::pop(std::vector<T> &range)
 {
-    size_t index = Random::index(range);
+    const auto index = Random::index(range);
     T value = range[index];
 
-    range.erase(range.begin() + index);
+    range.erase(range.begin() + static_cast<typename std::vector<T>::difference_type>(index));
 
     return value;
 }
