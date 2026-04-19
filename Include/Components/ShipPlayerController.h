@@ -1,28 +1,18 @@
 #pragma once
 
-#include <memory>
-
-#include "Components/Component.h"
-#include "Components/RigidBody.h"
-#include "Components/Transform.h"
-#include "Utils/SpeedState.h"
+#include "Components/ShipController.h"
 
 namespace component
 {
 
-class ShipPlayerController : public Component
+class ShipPlayerController : public ShipController
 {
   public:
     ShipPlayerController();
 
-    void initialize() override;
-    void update(float delta_time) override;
+  protected:
+    void updateStates() override;
 
-  private:
-    std::weak_ptr<Transform> transform_;
-    std::weak_ptr<RigidBody> rigid_body_;
-
-    SpeedState speed_state_;
 };
 
 } // namespace component

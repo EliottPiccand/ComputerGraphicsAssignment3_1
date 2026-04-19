@@ -6,7 +6,7 @@
 - ~~turret view (keyboard update the ship, no turret motion)~~
 - ~~cannonball view (above and beyond the cannonball, facing forward)~~
 - at least 2 enemies
-    - move
+    - ~~move~~
     - shoot
 - hp system
     - 24k hp
@@ -21,7 +21,6 @@
 - flapping flag
 - explosion effect
 - cannon recoil
-- propeller (might not be in the theme of the project)
 
 ## Custom Additional Goals
 - fireworks on win

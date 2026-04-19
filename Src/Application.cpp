@@ -12,6 +12,7 @@
 #include "Components/LightSource.h"
 #include "Components/ModelInstance.h"
 #include "Components/RigidBody.h"
+#include "Components/ShipAIController.h"
 #include "Components/ShipPlayerController.h"
 #include "Components/Transform.h"
 #include "Components/Water.h"
@@ -167,10 +168,12 @@ static_assert(PERSPECTIVE_FAR > static_cast<double>(WORLD_WIDTH) * std::numbers:
     /* target (visible in debug mode) */                                                                               \
     auto prefix##_target = scene_root_->addChild();                                                                    \
     auto prefix##_target_transform = prefix##_target->addComponent<component::Transform>();                            \
-    prefix##_target->addComponent<component::Collider>(component::Collider::AABB{                                      \
-        .half_size = 0.5f * ONE,                                                                                       \
-        .center = ZERO,                                                                                                \
-    });                                                                                                                \
+    prefix##_target                                                                                                    \
+        ->addComponent<component::Collider>(component::Collider::AABB{                                                 \
+            .half_size = 0.5f * ONE,                                                                                   \
+            .center = ZERO,                                                                                            \
+        })                                                                                                             \
+        ->disable();                                                                                                   \
                                                                                                                        \
     /* cannon */                                                                                                       \
     auto prefix##_cannon = prefix##_ship->addChild();                                                                  \
@@ -369,9 +372,9 @@ Application::Application() : free_view_override_(false), physics_(true)
 #else
     // - World border
     std::vector<std::shared_ptr<resource::Model>> rocks = {
-        ResourceLoader::getAsset<resource::Model>(ROCK_1_MODEL),  
-        ResourceLoader::getAsset<resource::Model>(ROCK_2_MODEL),  
-        ResourceLoader::getAsset<resource::Model>(ROCK_3_MODEL),  
+        ResourceLoader::getAsset<resource::Model>(ROCK_1_MODEL),
+        ResourceLoader::getAsset<resource::Model>(ROCK_2_MODEL),
+        ResourceLoader::getAsset<resource::Model>(ROCK_3_MODEL),
     };
 
     for (size_t i = 0; i < 4; ++i)
@@ -380,16 +383,19 @@ Application::Application() : free_view_override_(false), physics_(true)
         bool potitive = (i & 1);
 
         auto wall = scene_root_->addChild();
-        wall->addComponent<component::Transform>((WORLD_WIDTH / 2.0f - WALL_INSET) * (potitive ? 1.0f : -1.0f) * (along_north ? NORTH : EAST));
+        wall->addComponent<component::Transform>((WORLD_WIDTH / 2.0f - WALL_INSET) * (potitive ? 1.0f : -1.0f) *
+                                                 (along_north ? NORTH : EAST));
         wall->addComponent<component::Collider>(component::Collider::AABB{
-            .half_size = WALL_HEIGHT / 2.0f * UP + WORLD_WIDTH / 2.0f * (along_north ? EAST : NORTH) + 0.5f * (along_north ? NORTH : EAST),
+            .half_size = WALL_HEIGHT / 2.0f * UP + WORLD_WIDTH / 2.0f * (along_north ? EAST : NORTH) +
+                         0.5f * (along_north ? NORTH : EAST),
             .center = WALL_HEIGHT / 2.0f * UP,
         });
         wall->addComponent<component::RigidBody>();
 
         for (size_t j = 0; j < ROCKS_PER_WORLD_SIDE; ++j)
         {
-            const float c1 = WORLD_WIDTH * (static_cast<float>(j) / static_cast<float>(ROCKS_PER_WORLD_SIDE - 1) - 0.5f);
+            const float c1 =
+                WORLD_WIDTH * (static_cast<float>(j) / static_cast<float>(ROCKS_PER_WORLD_SIDE - 1) - 0.5f);
             const float c2 = WORLD_WIDTH / 2.0f;
             const float east = (potitive ? 1.0f : -1.0f) * (along_north ? c1 : c2);
             const float north = (potitive ? 1.0f : -1.0f) * (along_north ? c2 : c1);
@@ -401,7 +407,8 @@ Application::Application() : free_view_override_(false), physics_(true)
             rock->addComponent<component::Transform>(east * EAST + north * NORTH, angle * UP);
 
             auto rock_model = rock->addChild();
-            rock_model->addComponent<component::Transform>(ROCK_MODEL_TRANSLATION, ROCK_MODEL_ROTATION, ROCK_MODEL_SCALE);
+            rock_model->addComponent<component::Transform>(ROCK_MODEL_TRANSLATION, ROCK_MODEL_ROTATION,
+                                                           ROCK_MODEL_SCALE);
             rock_model->addComponent<component::ModelInstance>(random_rock_model);
         }
     }
@@ -432,6 +439,17 @@ Application::Application() : free_view_override_(false), physics_(true)
     const auto enemy_ship_position = EAST * -10.0f;
 
     CREATE_SHIP(enemy, enemy_ship_position, resource::Model::TextureOverride{});
+
+    auto enemy_ship_target = scene_root_->addChild();
+    auto enemy_ship_target_transform = enemy_ship_target->addComponent<component::Transform>();
+    enemy_ship_target
+        ->addComponent<component::Collider>(component::Collider::AABB{
+            .half_size = 0.5f * ONE,
+            .center = ZERO,
+        })
+        ->disable();
+
+    enemy_ship->addComponent<component::ShipAIController>(enemy_ship_target_transform);
 
 #endif
 
