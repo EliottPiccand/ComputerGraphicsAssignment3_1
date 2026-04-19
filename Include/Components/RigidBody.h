@@ -24,7 +24,7 @@ class RigidBody : public Component
     /// return a force and an application point
     using Force = std::function<std::pair<glm::vec3, glm::vec3>(const glm::vec3 &velocity, const glm::vec3 &position,
                                                                 const glm::vec3 &angular_velocity,
-                                                                const glm::vec3 &angular_position, float mass)>;
+                                                                const glm::quat &orientation, float mass)>;
 
     RigidBody();
     RigidBody(float mass);
@@ -57,7 +57,7 @@ class RigidBody : public Component
     glm::vec3 angular_velocity_;
 
     glm::vec3 position_;
-    glm::vec3 angular_position_;
+    glm::quat orientation_;
 };
 
 } // namespace component

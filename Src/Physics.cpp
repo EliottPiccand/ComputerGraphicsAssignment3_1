@@ -5,6 +5,7 @@
 
 #include "GameObject.h"
 #include "Utils/Constants.h"
+#include "Utils/Math.h"
 
 void Physics::addRigidBody(std::weak_ptr<component::RigidBody> rigid_body)
 {
@@ -32,12 +33,32 @@ void Physics::update(float delta_time)
         {
             collided_with_water = true;
 
-            rigid_body->addForce([](const glm::vec3 &, const glm::vec3 &, const glm::vec3 &, const glm::vec3 &,
+            rigid_body->addForce([](const glm::vec3 &, const glm::vec3 &, const glm::vec3 &, const glm::quat &,
                                     float mass) { return std::make_tuple(1.05f * mass * GRAVITY * UP, glm::vec3{}); });
         }
 
-        rigid_body->addForce([](const glm::vec3 &, const glm::vec3 &, const glm::vec3 &, const glm::vec3 &,
+        // Gravity
+        rigid_body->addForce([](const glm::vec3 &, const glm::vec3 &, const glm::vec3 &, const glm::quat &,
                                 float mass) { return std::make_tuple(-mass * GRAVITY * UP, glm::vec3{}); });
+
+        // Javelin stabilizer
+        rigid_body->addForce([](const glm::vec3 &velocity, const glm::vec3 &, const glm::vec3 &angular_velocity,
+                                const glm::quat &orientation, float) {
+            const glm::vec3 forward = getForwardVector(orientation, -Z);
+
+            const float tail_offset = 1.5f; // tune: distance from CM to tail
+            const glm::vec3 application_point = -forward * tail_offset;
+
+            const glm::vec3 v_tail = velocity + glm::cross(angular_velocity, application_point);
+
+            const glm::vec3 v_perp = v_tail - glm::dot(v_tail, forward) * forward;
+
+            const float drag_coeff = 5.0f; // tune: higher = faster alignment
+            const glm::vec3 force = -drag_coeff * v_perp;
+
+            return std::make_tuple(force, application_point);
+        });
+
         rigid_body->updatePhysics(delta_time);
 
         const auto world_transform = transform->resolve();
@@ -45,7 +66,7 @@ void Physics::update(float delta_time)
         const auto world_position = glm::vec3(world_transform[3]);
         transform->translate(rigid_body->position_ - world_position);
 
-        transform->setRotation(glm::quat(rigid_body->angular_position_));
+        transform->setRotation(rigid_body->orientation_);
         // TODO collision detection + solving
 
         if (collided_with_water)

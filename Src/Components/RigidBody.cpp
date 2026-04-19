@@ -15,7 +15,8 @@ RigidBody::RigidBody(float mass) : RigidBody(mass, glm::mat3(1.0f))
 
 RigidBody::RigidBody(float mass, glm::mat3 inertia)
     : is_static_(false), has_collisions_(true), mass_(mass), inverse_mass_(1.0f / mass),
-      inverse_inertia_(glm::inverse(inertia)), velocity_({}), angular_velocity_({}), angular_position_({})
+      inverse_inertia_(glm::inverse(inertia)), velocity_({}), angular_velocity_({}),
+      orientation_(glm::quat(1.0f, 0.0f, 0.0f, 0.0f))
 {
 }
 
@@ -40,7 +41,7 @@ void RigidBody::initialize()
 
     const auto transform = collider_.lock()->transform_.lock();
     position_ = glm::vec3(transform->resolve()[3]);
-    angular_position_ = glm::eulerAngles(transform->getRotation());
+    orientation_ = transform->getRotation();
 
     Physics::addRigidBody(std::dynamic_pointer_cast<RigidBody>(Component::shared_from_this()));
 }
@@ -52,7 +53,7 @@ void RigidBody::updatePhysics(float delta_time)
     for (const auto &force_callback : forces_)
     {
         const auto [force, application_point] =
-            force_callback(velocity_, position_, angular_velocity_, angular_position_, mass_);
+            force_callback(velocity_, position_, angular_velocity_, orientation_, mass_);
         forces_sum += force;
         torques_sum += glm::cross(application_point, force);
     }
@@ -64,5 +65,6 @@ void RigidBody::updatePhysics(float delta_time)
 
     const glm::vec3 angular_acceleration = inverse_inertia_ * torques_sum;
     angular_velocity_ += angular_acceleration * delta_time;
-    angular_position_ += angular_velocity_ * delta_time;
+    orientation_ += 0.5f * glm::quat(0, angular_velocity_) * orientation_ * delta_time;
+    orientation_ = glm::normalize(orientation_);
 }

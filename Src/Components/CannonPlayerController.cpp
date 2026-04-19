@@ -1,7 +1,6 @@
 #include "Components/CannonPlayerController.h"
 
 #include <cmath>
-#include <numbers>
 
 #include <Lib/OpenGL.h>
 #include <Lib/glfw.h>
@@ -37,12 +36,12 @@ void CannonPlayerController::initialize()
 glm::vec3 CannonPlayerController::getShootingInitialVelocity(const glm::vec3 &target) const
 {
     /// c.f. Ballistic.pdf
-    const auto position = glm::vec3(transform_.lock()->resolve()[3]);
+    const auto position = glm::vec3(barrel_transform_.lock()->resolve()[3]);
 
     const auto delta = target - position;
 
     const float a = GRAVITY * GRAVITY / 4.0f;
-    const float b = glm::dot(delta, UP) * GRAVITY + INITIAL_CANNONBALL_VELOCITY * INITIAL_CANNONBALL_VELOCITY;
+    const float b = glm::dot(delta, UP) * GRAVITY + INITIAL_CANNON_BALL_VELOCITY * INITIAL_CANNON_BALL_VELOCITY;
     const float c = glm::dot(delta, delta);
 
     const float disc = b * b - 4.0f * a * c;
@@ -138,7 +137,7 @@ void CannonPlayerController::update(float delta_time)
 
         const auto current_rotation_matrix = glm::mat3(resolved_transform);
         const auto current_rotation = glm::quat_cast(current_rotation_matrix);
-        const auto current_angle = angleAroundAxis(current_rotation, UP) + std::numbers::pi_v<float> / 2.0f;
+        const auto current_angle = angleAroundAxis(current_rotation, UP);
 
         transform->rotate(target_angle - current_angle, UP);
 
@@ -163,7 +162,7 @@ void CannonPlayerController::update(float delta_time)
     {
         if (aiming_)
         {
-            EventQueue::post<event::Fire>(position, cannonball_initial_velocity_, getOwner()->getId());
+            EventQueue::post<event::Fire>(glm::vec3(barrel_transform_.lock()->resolve()[3]), cannonball_initial_velocity_, getOwner()->getId());
             aiming_ = false;
         }
     }
@@ -177,7 +176,7 @@ bool CannonPlayerController::render() const
 
         Singleton::active_camera.lock()->bind();
 
-        const auto position = glm::vec3(transform_.lock()->resolve()[3]);
+        const auto position = glm::vec3(barrel_transform_.lock()->resolve()[3]);
         const auto trajectory = Physics::simulateCannonballTrajectory(position, cannonball_initial_velocity_);
 
         constexpr const GLfloat material[] = {_v4(color::BLUE)};

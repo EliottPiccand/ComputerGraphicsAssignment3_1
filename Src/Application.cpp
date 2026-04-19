@@ -30,48 +30,55 @@
 #include "Utils/Profiling.h"
 #include "Utils/Random.h"
 
+// #define DEBUG_SCENE
+
 #pragma region model_settings
 
 constexpr const std::string_view SHIP_MODEL = "Ship/Ship.gltf";
-constexpr const glm::vec3 SHIP_MODEL_DEFAULT_TRANSLATE = {0.5f, 1.0f, -0.25f};
-constexpr const glm::vec3 SHIP_MODEL_DEFAULT_ROTATION = {glm::radians(90.0f), 0.0f, 0.0f};
-constexpr const glm::vec3 SHIP_MODEL_DEFAULT_SCALE = 0.5f * glm::vec3{1.0f, 1.0f, 1.0f};
+constexpr const glm::vec3 SHIP_MODEL_TRANSLATION = -0.5f * MODEL_RIGHT;
+constexpr const glm::vec3 SHIP_MODEL_ROTATION = {glm::radians(90.0f), 0.0f, glm::radians(180.0f)};
+constexpr const glm::vec3 SHIP_MODEL_SCALE = 0.5f * ONE;
 constexpr const component::Collider::AABB SHIP_MODEL_COLLIDER = {
-    .half_size = {6.0f, 12.0f, 3.0f},
-    .center = {0.0f, 0.0f, 3.0f},
+    .half_size = 6.0f * MODEL_RIGHT + 12.0f * MODEL_FORWARD + 3.0f * MODEL_UP,
+    .center = 3.0f * MODEL_UP,
 };
 
 constexpr const std::string_view CANNON_STAND_MODEL = "CannonStand/CannonStand.gltf";
-constexpr const glm::vec3 CANNON_STAND_MODEl_DEFAULT_TRANSLATE = {};
-constexpr const glm::vec3 CANNON_STAND_MODEL_DEFAULT_ROTATION = {glm::radians(90.0f), 0.0f, 0.0f};
-constexpr const glm::vec3 CANNON_POSITION = {0.0f, -8.5f, 4.5f};
+constexpr const glm::vec3 CANNON_STAND_MODEL_TRANSLATION = {0.0f, 0.0f, 1.0f};
+constexpr const glm::vec3 CANNON_STAND_MODEL_ROTATION = {glm::radians(90.0f), 0.0f, glm::radians(180.0f)};
+constexpr const glm::vec3 CANNON_STAND_MODEL_SCALE = ONE;
 
 constexpr const std::string_view CANNON_BARREL_MODEL = "CannonBarrel/CannonBarrel.gltf";
-constexpr const glm::vec3 CANNON_BARREL_MODEl_DEFAULT_TRANSLATE = {};
-constexpr const glm::vec3 CANNON_BARREL_MODEL_DEFAULT_ROTATION = {glm::radians(8.0f), glm::radians(180.0f), 0.0f};
+constexpr const glm::vec3 CANNON_BARREL_MODEL_TRANSLATION = ZERO;
+constexpr const glm::vec3 CANNON_BARREL_MODEL_ROTATION = {glm::radians(99.0f), 0.0f, glm::radians(180.0f)};
+constexpr const glm::vec3 CANNON_BARREL_MODEL_SCALE = ONE;
 
-constexpr const std::string_view CANNONBALL_MODEL = "CannonBall/CannonBall.gltf";
-constexpr const glm::vec3 CANNONBALL_MODEL_DEFAULT_TRANSLATE = {};
-constexpr const glm::vec3 CANNONBALL_MODEL_DEFAULT_ROTATION = {glm::radians(90.0f), 0.0f, 0.0f};
-constexpr const glm::vec3 CANNONBALL_MODEL_DEFAULT_SCALE = 0.4f * glm::vec3{1.0f, 1.0f, 1.0f};
-constexpr const float CANNONBALL_MASS = 10.0f;
+constexpr const glm::vec3 CANNON_POSITION_IN_SHIP = 8.5f * MODEL_FORWARD + 3.7f * MODEL_UP;
+constexpr const glm::vec3 CANNON_BARREL_POSITION_IN_CANNON = 1.0f * MODEL_UP;
+constexpr const glm::vec3 CANNON_BARREL_ROTATION_IN_CANNON = {glm::radians(-90.0f), glm::radians(90.0f), 0.0f};
 
-constexpr const glm::vec3 RADAR_POSITION = {1.5f, 10.0f, 5.6f};
+constexpr const std::string_view CANNON_BALL_MODEL = "CannonBall/CannonBall.gltf";
+constexpr const glm::vec3 CANNON_BALL_MODEL_TRANSLATION = ZERO;
+constexpr const glm::vec3 CANNON_BALL_MODEL_ROTATION = {0.0f, 0.0f, glm::radians(180.0f)};
+constexpr const glm::vec3 CANNON_BALL_MODEL_SCALE = 0.4f * ONE;
+constexpr const float CANNON_BALL_MASS = 10.0f;
 
 constexpr const std::string_view RADAR_CYLINDER_MODEL = "RadarCylinder";
 constexpr const float RADAR_CYLINDER_HEIGHT = 1.0f;
 constexpr const float RADAR_CYLINDER_RAIDUS = 0.2f;
 constexpr const size_t RADAR_CYLINDER_RESOLUTION = 12;
 constexpr const Color RADAR_CYLINDER_COLOR = rgba(72, 43, 5, 1);
-constexpr const glm::vec3 RADAR_CYLINDER_DEFAULT_POSITION = Z * 0.5f;
+constexpr const glm::vec3 RADAR_CYLINDER_MODEL_TRANSLATION = MODEL_UP * 0.5f;
 
 constexpr const std::string_view RADAR_CONE_MODEL = "RadarCone";
 constexpr const float RADAR_CONE_HEIGHT = 1.0f;
 constexpr const float RADAR_CONE_RAIDUS = 0.3f;
 constexpr const size_t RADAR_CONE_RESOLUTION = 12;
 constexpr const Color RADAR_CONE_COLOR = rgba(255, 0, 0, 1);
-constexpr const glm::vec3 RADAR_CONE_DEFAULT_POSITION = Z * 0.9f;
-constexpr const glm::vec3 RADAR_CONE_DEFAULT_ROTATION = {glm::radians(90.0f), 0.0f, 0.0f};
+constexpr const glm::vec3 RADAR_CONE_MODEL_POSITION = MODEL_UP * 0.9f;
+constexpr const glm::vec3 RADAR_CONE_MODEL_ROTATION = {glm::radians(90.0f), 0.0f, 0.0f};
+
+constexpr const glm::vec3 RADAR_POSITION = 1.5f * MODEL_LEFT + 9.0f * MODEL_BACKWARD + 6.05f * MODEL_UP;
 
 const component::Animation::Callback RADAR_ANIMATION = [](float delta_time,
                                                           std::shared_ptr<component::Transform> transform) {
@@ -88,7 +95,7 @@ constexpr const double PERSPECTIVE_NEAR = 0.1;  // m
 constexpr const double PERSPECTIVE_FAR = 300.0; // m
 
 constexpr const glm::vec3 CANNON_CAMERA_OFFSET = {1.0f, -4.0f, 1.2f};
-constexpr const glm::vec3 CANNONBALL_CAMERA_OFFSET = {0.5f, 0.5f, 2.0f};
+constexpr const glm::vec3 CANNON_BALL_CAMERA_OFFSET = {0.5f, 0.5f, 2.0f};
 
 static_assert(PERSPECTIVE_FAR > static_cast<double>(WORLD_WIDTH) * std::numbers::sqrt2,
               "Perspective camera far plan not far enough to see the entire map");
@@ -104,8 +111,8 @@ static_assert(PERSPECTIVE_FAR > static_cast<double>(WORLD_WIDTH) * std::numbers:
                                                                                                                        \
     /* ship model */                                                                                                   \
     auto prefix##_ship_model = prefix##_ship->addChild();                                                              \
-    prefix##_ship_model->addComponent<component::Transform>(SHIP_MODEL_DEFAULT_TRANSLATE, SHIP_MODEL_DEFAULT_ROTATION, \
-                                                            SHIP_MODEL_DEFAULT_SCALE);                                 \
+    prefix##_ship_model->addComponent<component::Transform>(SHIP_MODEL_TRANSLATION, SHIP_MODEL_ROTATION,               \
+                                                            SHIP_MODEL_SCALE);                                         \
     prefix##_ship_model->addComponent<component::ModelInstance>(ResourceLoader::getAsset<resource::Model>(SHIP_MODEL), \
                                                                 texture_override);                                     \
                                                                                                                        \
@@ -119,24 +126,29 @@ static_assert(PERSPECTIVE_FAR > static_cast<double>(WORLD_WIDTH) * std::numbers:
                                                                                                                        \
     /* cannon */                                                                                                       \
     auto prefix##_cannon = prefix##_ship->addChild();                                                                  \
-    prefix##_cannon->addComponent<component::Transform>(CANNON_POSITION);                                              \
+    prefix##_cannon->addComponent<component::Transform>(CANNON_POSITION_IN_SHIP);                                      \
                                                                                                                        \
     /* - stand model */                                                                                                \
     auto prefix##_cannon_stand_model = prefix##_cannon->addChild();                                                    \
-    prefix##_cannon_stand_model->addComponent<component::Transform>(CANNON_STAND_MODEl_DEFAULT_TRANSLATE,              \
-                                                                    CANNON_STAND_MODEL_DEFAULT_ROTATION);              \
+    prefix##_cannon_stand_model->addComponent<component::Transform>(                                                   \
+        CANNON_STAND_MODEL_TRANSLATION, CANNON_STAND_MODEL_ROTATION, CANNON_STAND_MODEL_SCALE);                        \
     prefix##_cannon_stand_model->addComponent<component::ModelInstance>(                                               \
         ResourceLoader::getAsset<resource::Model>(CANNON_STAND_MODEL));                                                \
                                                                                                                        \
+    /* - barrel container */                                                                                           \
+    auto prefix##_barrel_container = prefix##_cannon->addChild();                                                      \
+    prefix##_barrel_container->addComponent<component::Transform>(CANNON_BARREL_POSITION_IN_CANNON,                    \
+                                                                  CANNON_BARREL_ROTATION_IN_CANNON);                   \
+                                                                                                                       \
     /* - barrel */                                                                                                     \
-    auto prefix##_cannon_barrel = prefix##_cannon->addChild();                                                         \
+    auto prefix##_cannon_barrel = prefix##_barrel_container->addChild();                                               \
     auto prefix##_cannon_barrel_transform = prefix##_cannon_barrel->addComponent<component::Transform>();              \
     prefix##_cannon_barrel_transform->pointToward(EAST);                                                               \
                                                                                                                        \
     /* - barrel model */                                                                                               \
     auto prefix##_cannon_barrel_model = prefix##_cannon_barrel->addChild();                                            \
-    prefix##_cannon_barrel_model->addComponent<component::Transform>(CANNON_BARREL_MODEl_DEFAULT_TRANSLATE,            \
-                                                                     CANNON_BARREL_MODEL_DEFAULT_ROTATION);            \
+    prefix##_cannon_barrel_model->addComponent<component::Transform>(                                                  \
+        CANNON_BARREL_MODEL_TRANSLATION, CANNON_BARREL_MODEL_ROTATION, CANNON_BARREL_MODEL_SCALE);                     \
     prefix##_cannon_barrel_model->addComponent<component::ModelInstance>(                                              \
         ResourceLoader::getAsset<resource::Model>(CANNON_BARREL_MODEL));                                               \
                                                                                                                        \
@@ -147,13 +159,13 @@ static_assert(PERSPECTIVE_FAR > static_cast<double>(WORLD_WIDTH) * std::numbers:
                                                                                                                        \
     /* - cylinder */                                                                                                   \
     auto prefix##_radar_cylinder = prefix##_radar->addChild();                                                         \
-    prefix##_radar_cylinder->addComponent<component::Transform>(RADAR_CYLINDER_DEFAULT_POSITION);                      \
+    prefix##_radar_cylinder->addComponent<component::Transform>(RADAR_CYLINDER_MODEL_TRANSLATION);                     \
     prefix##_radar_cylinder->addComponent<component::ModelInstance>(                                                   \
         ResourceLoader::get<resource::Model>(std::string(RADAR_CYLINDER_MODEL)));                                      \
                                                                                                                        \
     /* - cone */                                                                                                       \
     auto prefix##_radar_cone = prefix##_radar->addChild();                                                             \
-    prefix##_radar_cone->addComponent<component::Transform>(RADAR_CONE_DEFAULT_POSITION, RADAR_CONE_DEFAULT_ROTATION); \
+    prefix##_radar_cone->addComponent<component::Transform>(RADAR_CONE_MODEL_POSITION, RADAR_CONE_MODEL_ROTATION);     \
     prefix##_radar_cone->addComponent<component::ModelInstance>(                                                       \
         ResourceLoader::get<resource::Model>(std::string(RADAR_CONE_MODEL)))
 
@@ -200,7 +212,7 @@ Application::Application() : free_view_override_(false), physics_(true)
 
     ResourceLoader::getAsset<resource::Model>(CANNON_STAND_MODEL);
     ResourceLoader::getAsset<resource::Model>(CANNON_BARREL_MODEL);
-    ResourceLoader::getAsset<resource::Model>(CANNONBALL_MODEL);
+    ResourceLoader::getAsset<resource::Model>(CANNON_BALL_MODEL);
 
     ResourceLoader::load<resource::Model>(
         std::string(RADAR_CYLINDER_MODEL),
@@ -238,12 +250,55 @@ Application::Application() : free_view_override_(false), physics_(true)
         },
         glm::normalize(DOWN + NORTH * 0.01f));
 
+    // - Sun
     auto sun = scene_root_->addChild();
     sun->addComponent<component::Transform>(UP * 100.0f - NORTH * 30.0f);
     sun->addComponent<component::LightSource>(rgba(252, 231, 165, 1), rgb(255, 255, 255));
 
+#if defined(DEBUG_SCENE)
+
+    // Ship
+    auto ship = scene_root_->addChild();
+    ship->addComponent<component::Transform>();
+
+    auto ship_model = ship->addChild();
+    ship_model->addComponent<component::Transform>(SHIP_MODEL_TRANSLATION, SHIP_MODEL_ROTATION, SHIP_MODEL_SCALE);
+    ship_model->addComponent<component::ModelInstance>(ResourceLoader::getAsset<resource::Model>(SHIP_MODEL));
+
+    // Cannon Stand
+    auto cannon_stand = scene_root_->addChild();
+    cannon_stand->addComponent<component::Transform>(EAST * 10.0f);
+
+    auto cannon_stand_model = cannon_stand->addChild();
+    cannon_stand_model->addComponent<component::Transform>(CANNON_STAND_MODEL_TRANSLATION, CANNON_STAND_MODEL_ROTATION,
+                                                           CANNON_STAND_MODEL_SCALE);
+    cannon_stand_model->addComponent<component::ModelInstance>(
+        ResourceLoader::getAsset<resource::Model>(CANNON_STAND_MODEL));
+
+    // Cannon Barrel
+    auto cannon_barrel = scene_root_->addChild();
+    cannon_barrel->addComponent<component::Transform>(EAST * 15.0f);
+
+    auto cannon_barrel_model = cannon_barrel->addChild();
+    cannon_barrel_model->addComponent<component::Transform>(CANNON_BARREL_MODEL_TRANSLATION,
+                                                            CANNON_BARREL_MODEL_ROTATION, CANNON_BARREL_MODEL_SCALE);
+    cannon_barrel_model->addComponent<component::ModelInstance>(
+        ResourceLoader::getAsset<resource::Model>(CANNON_BARREL_MODEL));
+
+    // Cannon Ball
+    auto cannon_ball = scene_root_->addChild();
+    cannon_ball->addComponent<component::Transform>(EAST * 20.0f);
+
+    auto cannon_ball_model = cannon_ball->addChild();
+    cannon_ball_model->addComponent<component::Transform>(CANNON_BALL_MODEL_TRANSLATION, CANNON_BALL_MODEL_ROTATION,
+                                                          CANNON_BALL_MODEL_SCALE);
+    cannon_ball_model->addComponent<component::ModelInstance>(
+        ResourceLoader::getAsset<resource::Model>(CANNON_BALL_MODEL));
+
+#else
+
     // - Player
-    const auto player_ship_position = NORTH * 10.0f;
+    const auto player_ship_position = EAST * 10.0f;
 
     CREATE_SHIP(player, player_ship_position, PLAYER_SHIP_TEXTURE_OVERRIDE);
 
@@ -263,9 +318,11 @@ Application::Application() : free_view_override_(false), physics_(true)
                                                                    player_target_transform, cannon_camera_);
 
     // - Enemy 1
-    const auto enemy_ship_position = NORTH * -10.0f;
+    const auto enemy_ship_position = EAST * -10.0f;
 
     CREATE_SHIP(enemy, enemy_ship_position, resource::Model::TextureOverride{});
+
+#endif
 
     // - Water
     auto water = scene_root_->addChild();
@@ -281,8 +338,9 @@ Application::Application() : free_view_override_(false), physics_(true)
     restart();
     scene_root_->initialize();
 
-    LOG_DEBUG("cannonballs initial velocity: {} m/s", INITIAL_CANNONBALL_VELOCITY);
+    LOG_DEBUG("cannonballs initial velocity: {} m/s", INITIAL_CANNON_BALL_VELOCITY);
 
+#if !defined(DEBUG_SCENE)
     const auto water_id = water->getId();
     EventQueue::registerCallback<event::Fire>([this, water_id](const event::Fire &event) {
         if (glm::length(event.initial_velocity) < EPSILON)
@@ -300,7 +358,7 @@ Application::Application() : free_view_override_(false), physics_(true)
             .half_size = {0.5f, 0.5f, 0.5f},
             .center = {},
         });
-        auto rigid_body = cannonball->addComponent<component::RigidBody>(CANNONBALL_MASS);
+        auto rigid_body = cannonball->addComponent<component::RigidBody>(CANNON_BALL_MASS);
         rigid_body->addCollisionCallback([this, weak_cannonball, water_id](const GameObjectId id) {
             if (last_cannonball_camera_.has_value() &&
                 weak_cannonball.lock()->getId() ==
@@ -326,15 +384,15 @@ Application::Application() : free_view_override_(false), physics_(true)
         rigid_body->setVelocity(event.initial_velocity);
 
         auto cannonball_model = cannonball->addChild();
-        cannonball_model->addComponent<component::Transform>(
-            CANNONBALL_MODEL_DEFAULT_TRANSLATE, CANNONBALL_MODEL_DEFAULT_ROTATION, CANNONBALL_MODEL_DEFAULT_SCALE);
+        cannonball_model->addComponent<component::Transform>(CANNON_BALL_MODEL_TRANSLATION, CANNON_BALL_MODEL_ROTATION,
+                                                             CANNON_BALL_MODEL_SCALE);
         cannonball_model->addComponent<component::ModelInstance>(
-            ResourceLoader::getAsset<resource::Model>(CANNONBALL_MODEL));
+            ResourceLoader::getAsset<resource::Model>(CANNON_BALL_MODEL));
 
         if (event.shooter == player_cannon_id_)
         {
             auto cannonball_camera = cannonball->addChild();
-            cannonball_camera->addComponent<component::Transform>(CANNONBALL_CAMERA_OFFSET);
+            cannonball_camera->addComponent<component::Transform>(CANNON_BALL_CAMERA_OFFSET);
             last_cannonball_camera_ = {cannonball_camera->addComponent<component::Camera3D>(
                 component::Camera3D::Perspective{
                     .fov = FOV,
@@ -357,6 +415,7 @@ Application::Application() : free_view_override_(false), physics_(true)
             last_cannonball_camera_.value().lock()->lookToward(glm::normalize(event.initial_velocity));
         }
     });
+#endif
 
     Singleton::game_loaded = true;
 

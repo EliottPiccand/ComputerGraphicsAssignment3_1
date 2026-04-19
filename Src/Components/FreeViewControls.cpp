@@ -126,27 +126,23 @@ bool FreeViewControls::render() const
 
         glLineWidth(2.0f);
 
-        constexpr const auto NORTH_LINE_END = NORTH * LENGTH;
         constexpr const auto EAST_LINE_END = EAST * LENGTH;
+        constexpr const auto NORTH_LINE_END = NORTH * LENGTH;
         constexpr const auto UP_LINE_END = UP * LENGTH;
 
-        constexpr const GLfloat MATERIAL_RED[] = {_v4(color::RED)};
-        constexpr const GLfloat MATERIAL_GREEN[] = {_v4(color::GREEN)};
-        constexpr const GLfloat MATERIAL_BLUE[] = {_v4(color::BLUE)};
-
         glBegin(GL_LINES);
-            glMaterialfv(GL_FRONT, GL_AMBIENT, MATERIAL_RED);
-            glMaterialfv(GL_FRONT, GL_DIFFUSE, MATERIAL_RED);
-            glVertex3f(0.0f, 0.0f, 0.0f);
-            glVertex3f(_v3(NORTH_LINE_END));
-
-            glMaterialfv(GL_FRONT, GL_AMBIENT, MATERIAL_GREEN);
-            glMaterialfv(GL_FRONT, GL_DIFFUSE, MATERIAL_GREEN);
+            glMaterialfv(GL_FRONT, GL_AMBIENT, color::MATERIAL_RED);
+            glMaterialfv(GL_FRONT, GL_DIFFUSE, color::MATERIAL_RED);
             glVertex3f(0.0f, 0.0f, 0.0f);
             glVertex3f(_v3(EAST_LINE_END));
 
-            glMaterialfv(GL_FRONT, GL_AMBIENT, MATERIAL_BLUE);
-            glMaterialfv(GL_FRONT, GL_DIFFUSE, MATERIAL_BLUE);
+            glMaterialfv(GL_FRONT, GL_AMBIENT, color::MATERIAL_GREEN);
+            glMaterialfv(GL_FRONT, GL_DIFFUSE, color::MATERIAL_GREEN);
+            glVertex3f(0.0f, 0.0f, 0.0f);
+            glVertex3f(_v3(NORTH_LINE_END));            
+
+            glMaterialfv(GL_FRONT, GL_AMBIENT, color::MATERIAL_BLUE);
+            glMaterialfv(GL_FRONT, GL_DIFFUSE, color::MATERIAL_BLUE);
             glVertex3f(0.0f, 0.0f, 0.0f);
             glVertex3f(_v3(UP_LINE_END));
         glEnd();
