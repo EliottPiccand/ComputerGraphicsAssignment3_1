@@ -69,6 +69,7 @@ void CannonPlayerController::update(float delta_time)
     if (Input::getState(Singleton::view != View::Top ? Input::Action::DebugAimAndFire : Input::Action::AimAndFire) ==
         Input::State::JustPressed)
     {
+        LOG_DEBUG("aiming");
         aiming_ = true;
     }
 
@@ -106,11 +107,15 @@ void CannonPlayerController::update(float delta_time)
         target = Singleton::active_camera.lock()->screenToWorld(Input::getMousePosition());
         target_moved = true;
     }
-    else if (glm::length(target_motion) > EPSILON)
+    else
     {
-        const auto initial_target_position = glm::vec3(target_transform_.lock()->resolve()[3]);
-        target = initial_target_position + glm::normalize(target_motion) * DEBUG_TARGET_SPEED * delta_time;
-        target_moved = true;
+        target = glm::vec3(target_transform_.lock()->resolve()[3]);
+
+        if (glm::length(target_motion) > EPSILON)
+        {
+            target += glm::normalize(target_motion) * DEBUG_TARGET_SPEED * delta_time;
+            target_moved = true;
+        }
     }
 
     const auto target_along_north = glm::dot(target, NORTH);
