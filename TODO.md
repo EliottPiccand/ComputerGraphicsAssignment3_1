@@ -14,6 +14,7 @@
     - damages 3k-15k randomly
 - victory/defeat menu
     - victory state
+- collisions
 - update README
 
 ## Additional Goals
