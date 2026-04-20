@@ -2,8 +2,9 @@
 
 void EventQueue::processAll()
 {
-    for (const auto &raw_event : events_)
+    for (size_t i = 0; i < events_.size(); ++i)
     {
+        const auto &raw_event = events_[i];
         if (raw_event == nullptr)
             continue;
 

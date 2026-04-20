@@ -24,6 +24,8 @@
 #include "Events/DetachGameObject.h"
 #include "Events/EventQueue.h"
 #include "Events/Fire.h"
+#include "Events/GameEnd.h"
+#include "Events/ShipSunk.h"
 #include "Events/WindowResized.h"
 #include "Input.h"
 #include "Physics.h"
@@ -44,7 +46,7 @@
 
 #pragma region model_settings
 
-constexpr const std::string_view SHIP_MODEL = "Ship/Ship.gltf";
+    constexpr const std::string_view SHIP_MODEL = "Ship/Ship.gltf";
 constexpr const glm::vec3 SHIP_MODEL_TRANSLATION = -0.5f * MODEL_RIGHT;
 constexpr const glm::vec3 SHIP_MODEL_ROTATION = {glm::radians(90.0f), 0.0f, glm::radians(180.0f)};
 constexpr const glm::vec3 SHIP_MODEL_SCALE = 0.5f * ONE;
@@ -170,8 +172,9 @@ static_assert(PERSPECTIVE_FAR > static_cast<double>(WORLD_WIDTH) * std::numbers:
             LOG_DEBUG("ship {} sunk", game_object->getId());                                                           \
             game_object->visible = false;                                                                              \
             game_object->active = false;                                                                               \
-            prefix##_health_bar_weak.lock()->active = false;                                                                  \
-            prefix##_health_bar_weak.lock()->visible = false;                                                                 \
+            prefix##_health_bar_weak.lock()->active = false;                                                           \
+            prefix##_health_bar_weak.lock()->visible = false;                                                          \
+            EventQueue::post<event::ShipSunk>(game_object->getId());                                                   \
         });                                                                                                            \
                                                                                                                        \
     /* health bar*/                                                                                                    \
@@ -689,6 +692,39 @@ Application::Application() : free_view_override_(false)
             auto &[_id, _] = pair;
             return _id == game_object_id;
         });
+    });
+
+    EventQueue::registerCallback<event::ShipSunk>([this](const event::ShipSunk &event){
+        (void)event;
+        
+        size_t enemy_sunk_count = 0;
+        for (const auto pair : ships_and_health_bars_)
+        {
+            const auto ship = std::get<0>(pair).lock();
+         
+            if (ship->active)
+                continue;
+
+            if (ship->getId() == player_id_)
+            {
+                EventQueue::post<event::GameEnd>(false);
+                return;
+            }
+            else
+                enemy_sunk_count += 1;
+        }
+
+        if (enemy_sunk_count == ships_and_health_bars_.size() - 1)
+        {
+            EventQueue::post<event::GameEnd>(true);
+        }
+    });
+
+    EventQueue::registerCallback<event::GameEnd>([](const event::GameEnd &event){
+        if (event.victory)
+            LOG_DEBUG("victory");
+        else
+            LOG_DEBUG("defeat");
     });
 }
 
