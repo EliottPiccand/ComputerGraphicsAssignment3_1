@@ -22,7 +22,7 @@
 ## Additional Goals
 - flapping flag
 - explosion effect
-- cannon recoil
+- ~~cannon recoil~~
 
 ## Custom Additional Goals
 - fireworks on win

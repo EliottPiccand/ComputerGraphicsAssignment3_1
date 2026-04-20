@@ -32,6 +32,7 @@ class CannonController : public Component
 
     bool fired_;
     bool aiming_;
+    float recoil_;
 
     glm::vec3 target_;
     glm::vec3 cannon_ball_initial_velocity_;

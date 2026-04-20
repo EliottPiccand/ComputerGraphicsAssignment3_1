@@ -20,7 +20,8 @@ using namespace component;
 
 CannonController::CannonController(std::weak_ptr<Transform> cannon_barrel_transform,
                                    std::weak_ptr<Transform> target_transform)
-    : barrel_transform_(cannon_barrel_transform), target_transform_(target_transform), fired_(false), aiming_(false)
+    : barrel_transform_(cannon_barrel_transform), target_transform_(target_transform), fired_(false), aiming_(false),
+      recoil_(0.0f)
 {
 }
 
@@ -64,6 +65,9 @@ void CannonController::updateTarget(float delta_time)
 
 void CannonController::update(float delta_time)
 {
+    constexpr const float RECOIL_AMPLITUDE = 0.3f; // m
+    constexpr const float RECOIL_DECAY_INTENSITY = 0.9f;
+
     updateTarget(delta_time);
 
     target_transform_.lock()->setPosition(target_);
@@ -90,12 +94,23 @@ void CannonController::update(float delta_time)
     transform->rotate(target_angle - current_angle, UP);
 
     // Cannon barrel
+    if (recoil_ > delta_time * RECOIL_DECAY_INTENSITY)
+    {
+        recoil_ -= delta_time * RECOIL_DECAY_INTENSITY;
+    }
+    else
+    {
+        recoil_ = 0.0f;
+    }
+
     const auto barrel_parent_opt = barrel_transform->getOwner()->getParent();
     const auto barrel_parent_transform_opt = barrel_parent_opt.value()->getComponent<Transform>();
     const auto barrel_parent_rot = glm::quat_cast(glm::mat3(barrel_parent_transform_opt.value()->resolve()));
     const auto local_direction = glm::inverse(barrel_parent_rot) * cannon_ball_initial_velocity_;
 
-    barrel_transform->pointToward(glm::normalize(local_direction));
+    const auto direction = glm::normalize(local_direction);
+    barrel_transform->pointToward(direction);
+    barrel_transform->setPosition(-direction * recoil_);
 
     if (fired_)
     {
@@ -104,6 +119,7 @@ void CannonController::update(float delta_time)
 
         aiming_ = false;
         fired_ = false;
+        recoil_ = RECOIL_AMPLITUDE;
     }
 }
 
