@@ -37,6 +37,7 @@ class Input
         CycleCameras,
         TogglePhysics,
         RestartGame,
+        QuitGame,
     };
 
     enum class State

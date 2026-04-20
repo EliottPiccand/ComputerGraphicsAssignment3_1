@@ -12,8 +12,8 @@
     - ~~24k hp~~
     - ~~health display~~
     - ~~damages 3k-15k randomly~~
-- victory/defeat menu
-    - victory state
+- ~~victory/defeat menu~~
+    - ~~victory state~~
 - collisions
 - update README
 

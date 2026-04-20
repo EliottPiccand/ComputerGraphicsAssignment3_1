@@ -19,6 +19,7 @@
 #include "Components/RigidBody.h"
 #include "Components/ShipAIController.h"
 #include "Components/ShipPlayerController.h"
+#include "Components/Text.h"
 #include "Components/Transform.h"
 #include "Components/Water.h"
 #include "Events/DetachGameObject.h"
@@ -46,7 +47,7 @@
 
 #pragma region model_settings
 
-    constexpr const std::string_view SHIP_MODEL = "Ship/Ship.gltf";
+constexpr const std::string_view SHIP_MODEL = "Ship/Ship.gltf";
 constexpr const glm::vec3 SHIP_MODEL_TRANSLATION = -0.5f * MODEL_RIGHT;
 constexpr const glm::vec3 SHIP_MODEL_ROTATION = {glm::radians(90.0f), 0.0f, glm::radians(180.0f)};
 constexpr const glm::vec3 SHIP_MODEL_SCALE = 0.5f * ONE;
@@ -140,6 +141,12 @@ constexpr const std::string_view ROCK_3_MODEL = "Rocks/Rock3.gltf";
 constexpr const glm::vec3 ROCK_MODEL_TRANSLATION = ZERO;
 constexpr const glm::vec3 ROCK_MODEL_ROTATION = {glm::radians(180.0f), 0.0f, 0.0f};
 constexpr const glm::vec3 ROCK_MODEL_SCALE = ONE;
+
+constexpr const std::string_view VICTORY_MESSAGE = "Messages/Victory.png";
+constexpr const std::string_view DEFEAT_MESSAGE = "Messages/Defeat.png";
+constexpr const float MESSAGE_WIDTH = WORLD_WIDTH * 3.0f / 4.0f;
+constexpr const float MESSAGE_HEIGHT = MESSAGE_WIDTH * 9.0f / 16.0f;
+constexpr const glm::vec3 MESSAGE_POSITION = UP * 60.0f;
 
 #pragma endregion model_settings
 
@@ -288,7 +295,7 @@ static_assert(ENEMY_COUNT < SPAWN_LOCATIONS.size(), "not enough spawn location f
 
 #pragma endregion game_contants
 
-Application::Application() : free_view_override_(false)
+Application::Application() : should_close_(false), free_view_override_(false)
 {
     ProfileScope;
 
@@ -314,6 +321,7 @@ Application::Application() : free_view_override_(false)
     Input::bindKey(Input::Action::CycleCameras, GLFW_KEY_V);
     Input::bindKey(Input::Action::TogglePhysics, GLFW_KEY_P);
     Input::bindKey(Input::Action::RestartGame, GLFW_KEY_G);
+    Input::bindKey(Input::Action::QuitGame, GLFW_KEY_ESCAPE);
 
     // Load resources
     LOG_INFO("loading assets...");
@@ -542,6 +550,18 @@ Application::Application() : free_view_override_(false)
         true);
     water->addComponent<component::Water>();
 
+    // - Victory message
+    auto victory_message = scene_root_->addChild();
+    victory_message->addComponent<component::Transform>(MESSAGE_POSITION);
+    victory_message->addComponent<component::Text>(MESSAGE_WIDTH, MESSAGE_HEIGHT, ResourceLoader::getAsset<resource::Texture>(VICTORY_MESSAGE));
+    victory_message_ = victory_message;
+    
+    // - Defeat message
+    auto defeat_message = scene_root_->addChild();
+    defeat_message->addComponent<component::Transform>(MESSAGE_POSITION);
+    defeat_message->addComponent<component::Text>(MESSAGE_WIDTH, MESSAGE_HEIGHT, ResourceLoader::getAsset<resource::Texture>(DEFEAT_MESSAGE));
+    defeat_message_ = defeat_message;
+
 #pragma endregion scene
 
     LOG_INFO("assets loaded");
@@ -694,14 +714,14 @@ Application::Application() : free_view_override_(false)
         });
     });
 
-    EventQueue::registerCallback<event::ShipSunk>([this](const event::ShipSunk &event){
+    EventQueue::registerCallback<event::ShipSunk>([this](const event::ShipSunk &event) {
         (void)event;
-        
+
         size_t enemy_sunk_count = 0;
         for (const auto pair : ships_and_health_bars_)
         {
             const auto ship = std::get<0>(pair).lock();
-         
+
             if (ship->active)
                 continue;
 
@@ -720,11 +740,17 @@ Application::Application() : free_view_override_(false)
         }
     });
 
-    EventQueue::registerCallback<event::GameEnd>([](const event::GameEnd &event){
+    EventQueue::registerCallback<event::GameEnd>([this](const event::GameEnd &event) {
         if (event.victory)
+        {
             LOG_DEBUG("victory");
+            victory_message_.lock()->visible = true;
+        }
         else
+        {
             LOG_DEBUG("defeat");
+            defeat_message_.lock()->visible = true;
+        }
     });
 }
 
@@ -754,7 +780,7 @@ void Application::initializeOpenGL()
 
 void Application::run()
 {
-    while (!window_->shouldClose())
+    while (!(window_->shouldClose() || should_close_))
     {
         const float delta_time = clock_.tick();
         if (delta_time > 1.0f)
@@ -880,6 +906,10 @@ void Application::update(float delta_time)
     {
         restart();
     }
+    if (Input::getState(Input::Action::QuitGame) == Input::State::JustReleased)
+    {
+        should_close_ = true;
+    }
 
     updateActiveView();
 
@@ -907,6 +937,10 @@ void Application::render() const
 
 void Application::restart()
 {
+    // hide messages
+    victory_message_.lock()->visible = false;
+    defeat_message_.lock()->visible = false;
+
     // destroy cannon balls & explosions
     for (auto &[_, game_object] : to_detach_on_restart_)
     {
