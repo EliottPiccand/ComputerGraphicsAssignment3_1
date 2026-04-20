@@ -21,13 +21,13 @@
 
 ## Additional Goals
 - flapping flag
-- explosion effect
+- ~~explosion effect~~
 - ~~cannon recoil~~
 
 ## Custom Additional Goals
 - fireworks on win
 - flame + sparks on cannonball stem
-- water splash on cannonball hit water
+- ~~water splash on cannonball hit water~~
 - sink animation
 - rotating ship wheel
 - moving rudder

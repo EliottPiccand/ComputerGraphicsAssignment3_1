@@ -29,6 +29,7 @@
 #include "Events/ShipSunk.h"
 #include "Events/WindowResized.h"
 #include "Input.h"
+#include "ParticleSystem.h"
 #include "Physics.h"
 #include "Resources/Model.h"
 #include "Resources/ResourceLoader.h"
@@ -294,6 +295,25 @@ const component::Animation::Callback EXPLOSION_ANIMATION =
 static_assert(ENEMY_COUNT < SPAWN_LOCATIONS.size(), "not enough spawn location for every enemies");
 
 #pragma endregion game_contants
+
+#pragma region particles_settings
+
+constexpr const size_t PLOOF_PARTICLE_COUNT = 500;
+constexpr const float PLOOF_PARTICLE_SPAWN_RADIUS = 2.0f; // m
+constexpr const Color PLOOF_PARTICLE_INNER_COLOR = rgba(140, 188, 236, 0.81);
+constexpr const Color PLOOF_PARTICLE_OUTTER_COLOR = rgba(0, 102, 204, 0.6);
+constexpr const Duration PLOOF_PARTICLE_MAX_LIFETIME = std::chrono::seconds(3);
+constexpr const float PLOOF_PARTICLE_VERTICALITY = 10.0f;
+constexpr const float PLOOF_PARTICLE_SPREAD = glm::radians(3.0f);
+constexpr const float PLOOF_PARTICLE_VELOCITY = 10.0f; // m/s
+
+constexpr const size_t EXPLOSION_PARTICLE_COUNT = 2500;
+constexpr const Color EXPLOSION_PARTICLE_INNER_COLOR = rgba(220, 192, 70, 0.9);
+constexpr const Color EXPLOSION_PARTICLE_OUTTER_COLOR = rgba(252, 55, 29, 0.86);
+constexpr const Duration EXPLOSION_PARTICLE_MAX_LIFETIME = std::chrono::milliseconds(static_cast<int>(MAX_EXPLOSION_RAIDUS / EXPLOSION_RADIUS_EXPANTION_RATE * 1000.0f));
+constexpr const float EXPLOSION_PARTICLE_MAX_VELOCITY = 10.0f; // m/s
+
+#pragma endregion particles_settings
 
 Application::Application() : should_close_(false), free_view_override_(false)
 {
@@ -612,13 +632,33 @@ Application::Application() : should_close_(false), free_view_override_(false)
                     }
                 }
 
+                const auto cannon_ball_transform = cannon_ball_non_weak->getComponent<component::Transform>().value();
+                const auto cannon_ball_position = glm::vec3(cannon_ball_transform->resolve()[3]);
+
+                const auto instant_now = now();
+
                 if (id == water_id)
                 {
-                    LOG_DEBUG("ploof");
+                    std::vector<Particle> particles(PLOOF_PARTICLE_COUNT);
+                    for (auto &particle : particles)
+                    {
+                        const float radius = Random::random(0.0f, PLOOF_PARTICLE_SPAWN_RADIUS);
+                        const float angle = Random::random(0.0f, glm::radians(359.9f));
+
+                        const auto offset = radius * (std::cos(angle) * EAST + std::sin(angle) * NORTH);
+
+                        particle.position = cannon_ball_position + offset;
+                        particle.velocity = Random::random(PLOOF_PARTICLE_VELOCITY / 5.0f, PLOOF_PARTICLE_VELOCITY) * Random::direction(glm::normalize(offset + UP * PLOOF_PARTICLE_VERTICALITY), PLOOF_PARTICLE_SPREAD);
+                        particle.max_lifetime = PLOOF_PARTICLE_MAX_LIFETIME;
+                        particle.lifetime_start = instant_now;
+                        particle.color = glm::mix(PLOOF_PARTICLE_INNER_COLOR, PLOOF_PARTICLE_OUTTER_COLOR, std::sqrt(radius / PLOOF_PARTICLE_SPAWN_RADIUS));
+                        particle.subject_to_gravity = true;
+                    }
+                    ParticleSystem::addParticles(particles);
+
                 }
                 else
                 {
-                    LOG_DEBUG("spawning explosion");
                     std::shared_ptr<component::Transform> transform =
                         cannon_ball_non_weak->getComponent<component::Transform>().value();
 
@@ -633,6 +673,20 @@ Application::Application() : should_close_(false), free_view_override_(false)
                     explosion->addComponent<component::Animation>(EXPLOSION_ANIMATION);
                     explosion->initialize();
                     to_detach_on_restart_[explosion->getId()] = explosion;
+
+                    std::vector<Particle> particles(EXPLOSION_PARTICLE_COUNT);
+                    for (auto &particle : particles)
+                    {
+                        const float t = std::sqrt(Random::random(0.0f, 1.0f));
+
+                        particle.position = cannon_ball_position;
+                        particle.velocity = t * EXPLOSION_PARTICLE_MAX_VELOCITY * Random::direction();
+                        particle.max_lifetime = EXPLOSION_PARTICLE_MAX_LIFETIME;
+                        particle.lifetime_start = instant_now;
+                        particle.color = glm::mix(EXPLOSION_PARTICLE_INNER_COLOR, EXPLOSION_PARTICLE_OUTTER_COLOR, t);
+                        particle.subject_to_gravity = false;
+                    }
+                    ParticleSystem::addParticles(particles);
                 }
 
                 std::erase_if(to_detach_on_restart_, [cannon_ball_id](auto pair) {
@@ -923,6 +977,7 @@ void Application::update(float delta_time)
     if (!Singleton::physics_paused)
     {
         Physics::update(delta_time);
+        ParticleSystem::update(delta_time);
     }
 }
 
@@ -936,6 +991,7 @@ void Application::render() const
 
     Singleton::active_camera.lock()->bind();
     scene_root_->render();
+    ParticleSystem::render();
 }
 
 void Application::restart()

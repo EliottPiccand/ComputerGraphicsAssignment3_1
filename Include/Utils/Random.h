@@ -3,6 +3,8 @@
 #include <random>
 #include <vector>
 
+#include <Lib/glm.h>
+
 #include "Utils/Ranges.h"
 
 class Random
@@ -11,6 +13,9 @@ class Random
     static void initialize();
     [[nodiscard]] static float random(float min, float max);
     [[nodiscard]] static int randint(int min, int max);
+    /// along must be normalized, spread is in radians
+    [[nodiscard]] static glm::vec3 direction(const glm::vec3 &along, float spread);
+    [[nodiscard]] static glm::vec3 direction();
 
     template <Range R> [[nodiscard]] static size_t index(const R &range);
 
