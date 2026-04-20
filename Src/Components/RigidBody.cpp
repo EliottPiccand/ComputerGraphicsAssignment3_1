@@ -44,11 +44,16 @@ void RigidBody::initialize()
 {
     GET_COMPONENT(Collider, collider_, RigidBody);
 
+    reset();
+
+    Physics::addRigidBody(std::dynamic_pointer_cast<RigidBody>(Component::shared_from_this()));
+}
+
+void RigidBody::reset()
+{
     const auto transform = collider_.lock()->transform_.lock();
     position_ = glm::vec3(transform->resolve()[3]);
     orientation_ = transform->getRotation();
-
-    Physics::addRigidBody(std::dynamic_pointer_cast<RigidBody>(Component::shared_from_this()));
 }
 
 void RigidBody::updatePhysics(float delta_time)

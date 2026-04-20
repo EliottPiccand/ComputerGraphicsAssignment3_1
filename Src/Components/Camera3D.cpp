@@ -41,8 +41,6 @@ bool Camera3D::render() const
 {
     if (Singleton::debug)
     {
-        glLineWidth(2.0f);
-
         constexpr const GLfloat MATERIAL_BLUE[] = {_v4(color::BLUE)};
         glMaterialfv(GL_FRONT, GL_AMBIENT, MATERIAL_BLUE);
         glMaterialfv(GL_FRONT, GL_DIFFUSE, MATERIAL_BLUE);
@@ -67,6 +65,8 @@ bool Camera3D::render() const
             const auto near_top_right = near_center + half_width + half_height;
             const auto near_bottom_left = near_center - half_width - half_height;
             const auto near_bottom_right = near_center + half_width - half_height;
+
+            glLineWidth(2.0f);
 
             glBegin(GL_LINES);
                 glVertex3f(0.0f, 0.0f, 0.0f);

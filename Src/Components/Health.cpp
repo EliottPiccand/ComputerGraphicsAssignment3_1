@@ -1,5 +1,6 @@
 #include "Components/Health.h"
 
+#include <algorithm>
 
 #include "Components/Attack.h"
 #include "Components/Collider.h"
@@ -11,6 +12,17 @@ using namespace component;
 Health::Health(float max_hit_points, OnDeathCallback on_death_callback)
     : max_hit_points_(max_hit_points), hit_points_(max_hit_points), on_death_callback_(on_death_callback)
 {
+}
+
+void Health::heal(float hit_points)
+{
+    hit_points_ += hit_points;
+    hit_points_ = std::min(hit_points_, max_hit_points_);
+}
+
+void Health::heal()
+{
+    heal(max_hit_points_);
 }
 
 void Health::initialize()

@@ -122,6 +122,8 @@ bool CannonController::render() const
         glMaterialfv(GL_FRONT, GL_AMBIENT, material);
         glMaterialfv(GL_FRONT, GL_DIFFUSE, material);
 
+        glLineWidth(3.0f);
+
         glBegin(GL_LINE_STRIP);
         for (const auto &trajectory_position : trajectory)
         {

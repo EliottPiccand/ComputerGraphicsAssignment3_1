@@ -157,19 +157,21 @@ static_assert(PERSPECTIVE_FAR > static_cast<double>(WORLD_WIDTH) * std::numbers:
 
 #pragma region ship_definition
 
-#define CREATE_SHIP(prefix, position, texture_override)                                                                \
+#define CREATE_SHIP(prefix, texture_override)                                                                          \
     auto prefix##_ship = scene_root_->addChild();                                                                      \
-    auto prefix##_ship_transform = prefix##_ship->addComponent<component::Transform>(position);                        \
+    auto prefix##_ship_transform = prefix##_ship->addComponent<component::Transform>();                                \
     prefix##_ship->addComponent<component::Collider>(SHIP_MODEL_COLLIDER);                                             \
     prefix##_ship->addComponent<component::RigidBody>(SHIP_MASS);                                                      \
                                                                                                                        \
     auto prefix##_health_bar = scene_root_->addChild();                                                                \
-    const auto prefix##_health_bar_id = prefix##_health_bar->getId();                                                  \
+    std::weak_ptr prefix##_health_bar_weak = prefix##_health_bar;                                                      \
     auto prefix##_ship_health = prefix##_ship->addComponent<component::Health>(                                        \
-        SHIP_MAX_HIT_POINTS, [prefix##_health_bar_id](std::shared_ptr<GameObject> game_object) {                       \
+        SHIP_MAX_HIT_POINTS, [prefix##_health_bar_weak](std::shared_ptr<GameObject> game_object) {                     \
             LOG_DEBUG("ship {} sunk", game_object->getId());                                                           \
-            EventQueue::post<event::DetachGameObject>(game_object->getId());                                           \
-            EventQueue::post<event::DetachGameObject>(prefix##_health_bar_id);                                         \
+            game_object->visible = false;                                                                              \
+            game_object->active = false;                                                                               \
+            prefix##_health_bar_weak.lock()->active = false;                                                                  \
+            prefix##_health_bar_weak.lock()->visible = false;                                                                 \
         });                                                                                                            \
                                                                                                                        \
     /* health bar*/                                                                                                    \
@@ -308,6 +310,7 @@ Application::Application() : free_view_override_(false)
     Input::bindKey(Input::Action::DebugAimAndFire, GLFW_KEY_F);
     Input::bindKey(Input::Action::CycleCameras, GLFW_KEY_V);
     Input::bindKey(Input::Action::TogglePhysics, GLFW_KEY_P);
+    Input::bindKey(Input::Action::RestartGame, GLFW_KEY_G);
 
     // Load resources
     LOG_INFO("loading assets...");
@@ -473,13 +476,9 @@ Application::Application() : free_view_override_(false)
         }
     }
 
-    auto spawn_locations = SPAWN_LOCATIONS | std::ranges::to<std::vector>();
-
     // - Player
-    const auto player_ship_position = Random::pop(spawn_locations);
-    LOG_DEBUG("player position: {} {} {}", _v3(player_ship_position));
-
-    CREATE_SHIP(player, player_ship_position, PLAYER_SHIP_TEXTURE_OVERRIDE);
+    CREATE_SHIP(player, PLAYER_SHIP_TEXTURE_OVERRIDE);
+    ships_and_health_bars_.push_back({player_ship, player_health_bar});
 
     player_id_ = player_ship->getId();
 
@@ -501,10 +500,8 @@ Application::Application() : free_view_override_(false)
     // - Enemies
     for (size_t i = 0; i < ENEMY_COUNT; ++i)
     {
-        const auto enemy_ship_position = Random::pop(spawn_locations);
-        LOG_DEBUG("enemy {} position: {} {} {}", i, _v3(enemy_ship_position));
-
-        CREATE_SHIP(enemy, enemy_ship_position, resource::Model::TextureOverride{});
+        CREATE_SHIP(enemy, resource::Model::TextureOverride{});
+        ships_and_health_bars_.push_back({enemy_ship, enemy_health_bar});
 
         auto enemy_ship_target = scene_root_->addChild();
         auto enemy_ship_target_transform = enemy_ship_target->addComponent<component::Transform>();
@@ -546,8 +543,8 @@ Application::Application() : free_view_override_(false)
 
     LOG_INFO("assets loaded");
 
-    restart();
     scene_root_->initialize();
+    restart();
 
     LOG_DEBUG("cannon_balls initial velocity: {} m/s", INITIAL_CANNON_BALL_VELOCITY);
 
@@ -560,10 +557,11 @@ Application::Application() : free_view_override_(false)
             return;
         }
 
-        LOG_DEBUG("fire");
+        LOG_DEBUG("fire {} {} {}", _v3(event.initial_velocity));
 
         auto cannon_ball = scene_root_->addChild();
         std::weak_ptr<GameObject> weak_cannon_ball = cannon_ball;
+        to_detach_on_restart_[cannon_ball->getId()] = weak_cannon_ball;
 
         cannon_ball->addComponent<component::Transform>(event.position)
             ->pointToward(glm::normalize(event.initial_velocity));
@@ -578,10 +576,10 @@ Application::Application() : free_view_override_(false)
                 }
 
                 auto cannon_ball_non_weak = weak_cannon_ball.lock();
+                const auto cannon_ball_id = cannon_ball_non_weak->getId();
 
                 if (last_cannon_ball_camera_.has_value() &&
-                    cannon_ball_non_weak->getId() ==
-                        last_cannon_ball_camera_.value().lock()->getOwner()->getParent().value()->getId())
+                    cannon_ball_id == last_cannon_ball_camera_.value().lock()->getOwner()->getParent().value()->getId())
                 {
                     last_cannon_ball_camera_ = std::nullopt;
                     if (main_view_ == View::CannonBall)
@@ -611,7 +609,13 @@ Application::Application() : free_view_override_(false)
                                                                EXPLOSION_MIN_HIT_DELAY);
                     explosion->addComponent<component::Animation>(EXPLOSION_ANIMATION);
                     explosion->initialize();
+                    to_detach_on_restart_[explosion->getId()] = explosion;
                 }
+
+                std::erase_if(to_detach_on_restart_, [cannon_ball_id](auto pair) {
+                    auto &[_id, _] = pair;
+                    return _id == cannon_ball_id;
+                });
 
                 return true;
             });
@@ -672,13 +676,19 @@ Application::Application() : free_view_override_(false)
     main_view_ = View::Top;
     Singleton::view = main_view_;
 
-    EventQueue::registerCallback<event::DetachGameObject>([](const event::DetachGameObject &event) {
+    EventQueue::registerCallback<event::DetachGameObject>([this](const event::DetachGameObject &event) {
         auto game_object_option = Singleton::scene_root.lock()->getGameObject(event.game_object_id);
         if (!game_object_option.has_value())
             return;
 
         auto game_object = game_object_option.value();
+        const auto game_object_id = game_object->getId();
         game_object->detach();
+
+        std::erase_if(to_detach_on_restart_, [game_object_id](auto pair) {
+            auto &[_id, _] = pair;
+            return _id == game_object_id;
+        });
     });
 }
 
@@ -830,6 +840,10 @@ void Application::update(float delta_time)
     {
         Singleton::physics_paused = !Singleton::physics_paused;
     }
+    if (Input::getState(Input::Action::RestartGame) == Input::State::JustReleased)
+    {
+        restart();
+    }
 
     updateActiveView();
 
@@ -857,6 +871,45 @@ void Application::render() const
 
 void Application::restart()
 {
+    // destroy cannon balls & explosions
+    for (auto &[_, game_object] : to_detach_on_restart_)
+    {
+        game_object.lock()->detach();
+    }
+    to_detach_on_restart_.clear();
+
+    auto spawn_locations = SPAWN_LOCATIONS | std::ranges::to<std::vector>();
+
+    for (auto pair : ships_and_health_bars_)
+    {
+        auto [weak_ship, weak_health_bar] = pair;
+
+        auto ship = weak_ship.lock();
+        auto health_bar = weak_health_bar.lock();
+
+        // reactivate ships
+        ship->active = true;
+        ship->visible = true;
+        health_bar->active = true;
+        health_bar->visible = true;
+
+        // replace ships
+        const auto ship_position = Random::pop(spawn_locations);
+        auto ship_transform = ship->getComponent<component::Transform>().value();
+        ship_transform->setPosition(ship_position);
+        auto ship_rigid_body = ship->getComponent<component::RigidBody>().value();
+        ship_rigid_body->reset();
+
+        auto ship_player_controller_option = ship->getComponent<component::ShipPlayerController>();
+        if (ship_player_controller_option.has_value())
+        {
+            ship_player_controller_option.value()->stop();
+        }
+
+        // refill ship health
+        ship->getComponent<component::Health>().value()->heal();
+    }
+
     const auto [framebuffer_width, framebuffer_height] = window_->getFramebufferSize();
     EventQueue::post<event::WindowResized>(framebuffer_width, framebuffer_height);
 }

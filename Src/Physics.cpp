@@ -25,9 +25,9 @@ void Physics::update(float delta_time)
 {
     std::erase_if(rigid_bodys_, [](const auto &wp) { return wp.expired(); });
     std::erase_if(colliders_, [](const auto &wp) { return wp.expired(); });
-    
+
     std::unordered_set<std::shared_ptr<component::Collider>> had_water_collision;
-    
+
     const auto water_collider = water_collider_.lock();
 
     for (auto [i, rigid_body_ptr] : rigid_bodys_ | std::views::enumerate)
@@ -35,6 +35,11 @@ void Physics::update(float delta_time)
         auto rigid_body = rigid_body_ptr.lock();
         auto collider = rigid_body->collider_.lock();
         auto transform = collider->transform_.lock();
+
+        if (!rigid_body->getOwner()->active)
+        {
+            continue;
+        }
 
         if (rigid_body->is_static_)
         {
@@ -85,18 +90,26 @@ void Physics::update(float delta_time)
 
     const auto water_id = water_collider->getOwner()->getId();
     std::vector<std::shared_ptr<GameObject>> to_detach;
-    for (size_t i = 0; i < colliders_.size(); ++i) {
+    for (size_t i = 0; i < colliders_.size(); ++i)
+    {
         const auto &collider = colliders_[i].lock();
-        
+
+        if (!collider->getOwner()->active)
+        {
+            continue;
+        }
+
         if (collider->isDisabled())
             continue;
 
-        if (had_water_collision.contains(collider)) {
+        if (had_water_collision.contains(collider))
+        {
             if (collider->callCollisionCallbacks(water_id))
                 to_detach.push_back(collider->getOwner());
         }
 
-        for (size_t j = i + 1; j < colliders_.size(); ++j) {
+        for (size_t j = i + 1; j < colliders_.size(); ++j)
+        {
             const auto &other_collider = colliders_[j].lock();
 
             if (other_collider->isDisabled())

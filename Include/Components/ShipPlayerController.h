@@ -10,6 +10,8 @@ class ShipPlayerController : public ShipController
   public:
     ShipPlayerController();
 
+    void stop();
+
   protected:
     void updateStates() override;
 

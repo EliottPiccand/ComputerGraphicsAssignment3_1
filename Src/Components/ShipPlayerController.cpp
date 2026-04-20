@@ -16,6 +16,10 @@ ShipPlayerController::ShipPlayerController() : ShipController()
     Input::bindKey(Input::Action::TurnRight, GLFW_KEY_D);
 }
 
+void ShipPlayerController::stop()
+{
+    speed_state_ = SpeedState::Stopped;
+}
 
 void ShipPlayerController::updateStates()
 {

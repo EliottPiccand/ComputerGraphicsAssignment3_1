@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <optional>
+#include <unordered_map>
 
 #include "Clock.h"
 #include "Components/Camera3D.h"
@@ -22,6 +23,8 @@ class Application
     std::unique_ptr<Window> window_;
 
     std::shared_ptr<GameObject> scene_root_;
+    std::vector<std::pair<std::weak_ptr<GameObject>, std::weak_ptr<GameObject>>> ships_and_health_bars_;
+    std::unordered_map<GameObjectId, std::weak_ptr<GameObject>> to_detach_on_restart_;
 
     std::weak_ptr<component::Camera3D> free_view_camera_;
     std::weak_ptr<component::FreeViewControls> free_view_controls_;

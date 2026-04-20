@@ -36,6 +36,7 @@ class Input
         DebugAimAndFire,
         CycleCameras,
         TogglePhysics,
+        RestartGame,
     };
 
     enum class State

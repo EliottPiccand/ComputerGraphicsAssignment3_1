@@ -33,6 +33,7 @@ class RigidBody : public Component
     void setOrientation(const glm::quat &orientation);
 
     void initialize() override;
+    void reset();
 
     void updatePhysics(float delta_time);
 

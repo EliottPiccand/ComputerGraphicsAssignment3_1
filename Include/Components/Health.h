@@ -17,7 +17,11 @@ class Health : public Component
     Health(float max_hit_points, OnDeathCallback on_death_callback);
 
     void initialize() override;
+
     void damage(float hit_points);
+    void heal(float hit_points);
+    void heal();
+    
     float getRemainingHealthRatio() const;
 
   private:
