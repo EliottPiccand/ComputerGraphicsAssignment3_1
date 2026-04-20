@@ -6,13 +6,16 @@
 #include "Components/Component.h"
 #include "Components/Transform.h"
 
+class GameObject;
+
 namespace component
 {
 
 class Animation : public Component
 {
   public:
-    using Callback = std::function<void(float delta_time, std::shared_ptr<Transform> transform)>;
+    using Callback = std::function<void(float delta_time, std::shared_ptr<Transform> transform,
+                                        std::shared_ptr<GameObject> game_object)>;
 
     Animation(Callback callback);
 

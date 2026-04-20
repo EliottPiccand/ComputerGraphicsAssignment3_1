@@ -1,6 +1,7 @@
 #include "Components/Collider.h"
 
 #include <array>
+#include <cmath>
 #include <cstdint>
 #include <limits>
 #include <stdexcept>
@@ -59,6 +60,113 @@ Collider::ConvexPolyhedron transformPolyhedron(const Collider::ConvexPolyhedron 
         vertex = glm::vec3(transform * glm::vec4(vertex, 1.0f));
     }
     return transformed;
+}
+
+std::pair<glm::vec3, float> transformSphere(const Collider::Sphere &sphere, const glm::mat4 &transform)
+{
+    const auto world_center = glm::vec3(transform * glm::vec4(sphere.center, 1.0f));
+    const float scale_x = glm::length(glm::vec3(transform[0]));
+    const float scale_y = glm::length(glm::vec3(transform[1]));
+    const float scale_z = glm::length(glm::vec3(transform[2]));
+    const float world_radius = sphere.radius * glm::max(scale_x, glm::max(scale_y, scale_z));
+
+    return {world_center, world_radius};
+}
+
+glm::vec3 closestPointOnTriangle(const glm::vec3 &point,
+                                 const glm::vec3 &a,
+                                 const glm::vec3 &b,
+                                 const glm::vec3 &c)
+{
+    const glm::vec3 ab = b - a;
+    const glm::vec3 ac = c - a;
+    const glm::vec3 ap = point - a;
+
+    const float d1 = glm::dot(ab, ap);
+    const float d2 = glm::dot(ac, ap);
+    if (d1 <= 0.0f && d2 <= 0.0f)
+    {
+        return a;
+    }
+
+    const glm::vec3 bp = point - b;
+    const float d3 = glm::dot(ab, bp);
+    const float d4 = glm::dot(ac, bp);
+    if (d3 >= 0.0f && d4 <= d3)
+    {
+        return b;
+    }
+
+    const float vc = d1 * d4 - d3 * d2;
+    if (vc <= 0.0f && d1 >= 0.0f && d3 <= 0.0f)
+    {
+        const float v = d1 / (d1 - d3);
+        return a + v * ab;
+    }
+
+    const glm::vec3 cp = point - c;
+    const float d5 = glm::dot(ab, cp);
+    const float d6 = glm::dot(ac, cp);
+    if (d6 >= 0.0f && d5 <= d6)
+    {
+        return c;
+    }
+
+    const float vb = d5 * d2 - d1 * d6;
+    if (vb <= 0.0f && d2 >= 0.0f && d6 <= 0.0f)
+    {
+        const float w = d2 / (d2 - d6);
+        return a + w * ac;
+    }
+
+    const float va = d3 * d6 - d5 * d4;
+    if (va <= 0.0f && (d4 - d3) >= 0.0f && (d5 - d6) >= 0.0f)
+    {
+        const float w = (d4 - d3) / ((d4 - d3) + (d5 - d6));
+        return b + w * (c - b);
+    }
+
+    const float denom = 1.0f / (va + vb + vc);
+    const float v = vb * denom;
+    const float w = vc * denom;
+    return a + ab * v + ac * w;
+}
+
+bool collideSphereAabb(const glm::vec3 &sphere_center, float sphere_radius, const Collider::AABB &aabb)
+{
+    const glm::vec3 aabb_min = aabb.center - aabb.half_size;
+    const glm::vec3 aabb_max = aabb.center + aabb.half_size;
+    const glm::vec3 closest_point = glm::clamp(sphere_center, aabb_min, aabb_max);
+    return glm::dot(closest_point - sphere_center, closest_point - sphere_center) <= sphere_radius * sphere_radius;
+}
+
+bool collideSpherePolyhedron(const glm::vec3 &sphere_center, float sphere_radius, const Collider::ConvexPolyhedron &polyhedron)
+{
+    if (polyhedron.vertices.empty() || polyhedron.faces.empty())
+    {
+        return false;
+    }
+
+    const float radius_sq = sphere_radius * sphere_radius;
+    float closest_distance_sq = std::numeric_limits<float>::max();
+
+    for (const auto &face : polyhedron.faces)
+    {
+        const auto &v0 = polyhedron.vertices[face.x];
+        const auto &v1 = polyhedron.vertices[face.y];
+        const auto &v2 = polyhedron.vertices[face.z];
+
+        const auto closest_point = closestPointOnTriangle(sphere_center, v0, v1, v2);
+        closest_distance_sq = glm::min(closest_distance_sq,
+                           glm::dot(closest_point - sphere_center, closest_point - sphere_center));
+
+        if (closest_distance_sq <= radius_sq)
+        {
+            return true;
+        }
+    }
+
+    return closest_distance_sq <= radius_sq;
 }
 
 void appendFaceAxes(const Collider::ConvexPolyhedron &polyhedron, std::vector<glm::vec3> &axes)
@@ -198,6 +306,14 @@ bool collide(const Collider::ConvexPolyhedron &a, const Collider::ConvexPolyhedr
     return true;
 }
 
+bool collide(const Collider::Sphere &sphere_a, const glm::mat4 &transform_a, const Collider::Sphere &sphere_b,
+             const glm::mat4 &transform_b)
+{
+    const auto [center_a, radius_a] = transformSphere(sphere_a, transform_a);
+    const auto [center_b, radius_b] = transformSphere(sphere_b, transform_b);
+    return glm::dot(center_a - center_b, center_a - center_b) <= (radius_a + radius_b) * (radius_a + radius_b);
+}
+
 } // namespace
 
 Collider::Collider(Type type, bool is_water) : type_(type), enabled_(true), is_water_(is_water)
@@ -225,6 +341,21 @@ bool Collider::collideWith(const Collider &other) const
     {
         return true;
     }
+    if (std::holds_alternative<Sphere>(type_) && std::holds_alternative<Sphere>(other.type_))
+    {
+        return collide(std::get<Sphere>(type_), transform_.lock()->resolve(), std::get<Sphere>(other.type_),
+                       other.transform_.lock()->resolve());
+    }
+    if (std::holds_alternative<Sphere>(type_) && std::holds_alternative<AABB>(other.type_))
+    {
+        const auto [center, radius] = transformSphere(std::get<Sphere>(type_), transform_.lock()->resolve());
+        return collideSphereAabb(center, radius, other.aabb_);
+    }
+    if (std::holds_alternative<AABB>(type_) && std::holds_alternative<Sphere>(other.type_))
+    {
+        const auto [center, radius] = transformSphere(std::get<Sphere>(other.type_), other.transform_.lock()->resolve());
+        return collideSphereAabb(center, radius, aabb_);
+    }
     if (std::holds_alternative<ConvexPolyhedron>(type_) && std::holds_alternative<AABB>(other.type_))
     {
         const auto self = transformPolyhedron(std::get<ConvexPolyhedron>(type_), transform_.lock()->resolve());
@@ -242,6 +373,18 @@ bool Collider::collideWith(const Collider &other) const
         const auto other_poly =
             transformPolyhedron(std::get<ConvexPolyhedron>(other.type_), other.transform_.lock()->resolve());
         return collide(self, other_poly);
+    }
+    if (std::holds_alternative<Sphere>(type_) && std::holds_alternative<ConvexPolyhedron>(other.type_))
+    {
+        const auto [center, radius] = transformSphere(std::get<Sphere>(type_), transform_.lock()->resolve());
+        const auto other_poly = transformPolyhedron(std::get<ConvexPolyhedron>(other.type_), other.transform_.lock()->resolve());
+        return collideSpherePolyhedron(center, radius, other_poly);
+    }
+    if (std::holds_alternative<ConvexPolyhedron>(type_) && std::holds_alternative<Sphere>(other.type_))
+    {
+        const auto self = transformPolyhedron(std::get<ConvexPolyhedron>(type_), transform_.lock()->resolve());
+        const auto [center, radius] = transformSphere(std::get<Sphere>(other.type_), other.transform_.lock()->resolve());
+        return collideSpherePolyhedron(center, radius, self);
     }
 
     throw std::runtime_error("missing implementation for collision check");
@@ -339,6 +482,12 @@ void Collider::update(float delta_time)
             {
                 aabb_ = computeAabb(shape.vertices, transform);
             }
+            else if constexpr (std::is_same_v<Shape, Sphere>)
+            {
+                const auto [center, radius] = transformSphere(shape, transform);
+                aabb_.center = center;
+                aabb_.half_size = radius * ONE;
+            }
             else
             {
                 throw std::runtime_error("missing update implementation for Collider type");
@@ -351,7 +500,9 @@ bool Collider::render() const
 {
     constexpr const Color AABB_COLOR = rgb(255, 0, 0);
     constexpr const Color CONVEX_POLYHEDRON_COLOR = rgb(0, 255, 0);
+    constexpr const Color SPHERE_COLOR = rgb(0, 128, 255);
     constexpr const GLfloat LINE_WIDTH = 3.0f;
+    constexpr const size_t SPHERE_SEGMENTS = 24;
 
     if (Singleton::debug)
     {
@@ -399,6 +550,40 @@ bool Collider::render() const
                         glVertex3f(_v3(v1));
                     }
                     glEnd();
+                }
+                else if constexpr (std::is_same_v<Shape, Sphere>)
+                {
+                    const auto [center, radius] = transformSphere(shape, transform_.lock()->resolve());
+
+                    constexpr const GLfloat material_ambient[] = {_v4(SPHERE_COLOR)};
+                    constexpr const GLfloat material_diffuse[] = {_v4(SPHERE_COLOR)};
+
+                    glPushMatrix();
+                    glLoadIdentity();
+                    Singleton::active_camera.lock()->bind();
+
+                    glMaterialfv(GL_FRONT, GL_AMBIENT, material_ambient);
+                    glMaterialfv(GL_FRONT, GL_DIFFUSE, material_diffuse);
+
+                    glLineWidth(LINE_WIDTH);
+
+                    const auto draw_ring = [&](const glm::vec3 &axis_x, const glm::vec3 &axis_y) {
+                        glBegin(GL_LINE_LOOP);
+                        for (size_t i = 0; i < SPHERE_SEGMENTS; ++i)
+                        {
+                            const float angle = glm::two_pi<float>() * static_cast<float>(i) /
+                                                static_cast<float>(SPHERE_SEGMENTS);
+                            const auto point = center + radius * (std::cos(angle) * axis_x + std::sin(angle) * axis_y);
+                            glVertex3f(_v3(point));
+                        }
+                        glEnd();
+                    };
+
+                    draw_ring(X, Y);
+                    draw_ring(Y, Z);
+                    draw_ring(Z, X);
+
+                    glPopMatrix();
                 }
                 else
                 {

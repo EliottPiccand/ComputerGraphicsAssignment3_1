@@ -42,6 +42,9 @@ void CannonAIController::pickTargetTarget()
 
 void CannonAIController::updateTarget(float delta_time)
 {
+    if (Singleton::physics_paused)
+        return;
+
     constexpr const float TARGET_REACH_RADIUS = 1.0f;  // m
     constexpr const float TARGET_MOVING_SPEED = 20.0f; // m/s
     constexpr const Duration MIN_FIRE_INTERVAL = std::chrono::milliseconds(200);

@@ -1,5 +1,6 @@
 #include "Application.h"
 
+#include <chrono>
 #include <numbers>
 #include <string_view>
 
@@ -7,9 +8,11 @@
 #include <Lib/glm.h>
 
 #include "Components/Animation.h"
+#include "Components/Attack.h"
 #include "Components/CannonAIController.h"
 #include "Components/CannonPlayerController.h"
 #include "Components/Collider.h"
+#include "Components/Health.h"
 #include "Components/LightSource.h"
 #include "Components/ModelInstance.h"
 #include "Components/RigidBody.h"
@@ -17,6 +20,7 @@
 #include "Components/ShipPlayerController.h"
 #include "Components/Transform.h"
 #include "Components/Water.h"
+#include "Events/DetachGameObject.h"
 #include "Events/EventQueue.h"
 #include "Events/Fire.h"
 #include "Events/WindowResized.h"
@@ -25,6 +29,7 @@
 #include "Resources/Model.h"
 #include "Resources/ResourceLoader.h"
 #include "Resources/Texture.h"
+#include "Singleton.h"
 #include "Utils/Color.h"
 #include "Utils/Constants.h"
 #include "Utils/Log.h"
@@ -119,11 +124,12 @@ constexpr const glm::vec3 RADAR_CONE_MODEL_ROTATION = {glm::radians(90.0f), 0.0f
 
 constexpr const glm::vec3 RADAR_POSITION = 1.5f * MODEL_LEFT + 9.0f * MODEL_BACKWARD + 6.05f * MODEL_UP;
 
-const component::Animation::Callback RADAR_ANIMATION = [](float delta_time,
-                                                          std::shared_ptr<component::Transform> transform) {
-    constexpr const float ROTATION_SPEED = 2.0f * std::numbers::pi_v<float> / 3.0f;
-    transform->rotate(ROTATION_SPEED * delta_time, UP);
-};
+const component::Animation::Callback RADAR_ANIMATION =
+    [](float delta_time, std::shared_ptr<component::Transform> transform, std::shared_ptr<GameObject> game_object) {
+        (void)game_object;
+        constexpr const float ROTATION_SPEED = 2.0f * std::numbers::pi_v<float> / 3.0f;
+        transform->rotate(ROTATION_SPEED * delta_time, UP);
+    };
 
 constexpr const std::string_view ROCK_1_MODEL = "Rocks/Rock1.gltf";
 constexpr const std::string_view ROCK_2_MODEL = "Rocks/Rock2.gltf";
@@ -155,6 +161,10 @@ static_assert(PERSPECTIVE_FAR > static_cast<double>(WORLD_WIDTH) * std::numbers:
     prefix##_ship->addComponent<component::Transform>(position);                                                       \
     prefix##_ship->addComponent<component::Collider>(SHIP_MODEL_COLLIDER);                                             \
     prefix##_ship->addComponent<component::RigidBody>(SHIP_MASS);                                                      \
+    prefix##_ship->addComponent<component::Health>(SHIP_MAX_HIT_POINTS, [](std::shared_ptr<GameObject> game_object) {  \
+        LOG_DEBUG("ship {} sunk", game_object->getId());                                                               \
+        EventQueue::post<event::DetachGameObject>(game_object->getId());                                                \
+    });                                                                                                                \
                                                                                                                        \
     /* ship model */                                                                                                   \
     auto prefix##_ship_model = prefix##_ship->addChild();                                                              \
@@ -237,11 +247,33 @@ constexpr const std::array SPAWN_LOCATIONS = {
 
 constexpr const size_t ENEMY_COUNT = 2;
 
+constexpr const float SHIP_MAX_HIT_POINTS = 24'000.0f;
+constexpr const float CANNON_BALL_MIN_DAMAGE = 3'000.0f;
+constexpr const float CANNON_BALL_MAX_DAMAGE = 15'000.0f;
+
+constexpr const float MAX_EXPLOSION_RAIDUS = 5.0f;            // m
+constexpr const float EXPLOSION_RADIUS_EXPANTION_RATE = 8.0f; // m/s
+constexpr const Duration EXPLOSION_MIN_HIT_DELAY = std::chrono::seconds(10);
+const component::Animation::Callback EXPLOSION_ANIMATION =
+    [](float delta_time, std::shared_ptr<component::Transform> transform, std::shared_ptr<GameObject> game_object) {
+        if (Singleton::physics_paused)
+            return;
+
+        const auto scale = transform->getScale();
+        auto radius = scale.x; // assume uniform scaling
+
+        radius += EXPLOSION_RADIUS_EXPANTION_RATE * delta_time;
+        transform->setScale(radius * ONE);
+
+        if (radius >= MAX_EXPLOSION_RAIDUS)
+            EventQueue::post<event::DetachGameObject>(game_object->getId());
+    };
+
 static_assert(ENEMY_COUNT < SPAWN_LOCATIONS.size(), "not enough spawn location for every enemies");
 
 #pragma endregion game_contants
 
-Application::Application() : free_view_override_(false), physics_(true)
+Application::Application() : free_view_override_(false)
 {
     ProfileScope;
 
@@ -294,6 +326,7 @@ Application::Application() : free_view_override_(false), physics_(true)
 
     scene_root_ = std::make_shared<GameObject>();
     scene_root_->addComponent<component::Transform>();
+    Singleton::scene_root = scene_root_;
 
     // - Free View Camera
     auto perspective_camera = scene_root_->addChild();
@@ -527,36 +560,50 @@ Application::Application() : free_view_override_(false), physics_(true)
 
         auto cannon_ball_collider = cannon_ball->addComponent<component::Collider>(CANNON_BALL_COLLIDER);
         const auto shooter_id = event.shooter;
-        cannon_ball_collider->addCollisionCallback([this, weak_cannon_ball, water_id,
-                                                    shooter_id](const GameObjectId id) {
-            if (id == shooter_id)
-            {
-                return false;
-            }
-
-            if (last_cannon_ball_camera_.has_value() &&
-                weak_cannon_ball.lock()->getId() ==
-                    last_cannon_ball_camera_.value().lock()->getOwner()->getParent().value()->getId())
-            {
-                last_cannon_ball_camera_ = std::nullopt;
-                if (main_view_ == View::CannonBall)
+        cannon_ball_collider->addCollisionCallback(
+            [this, weak_cannon_ball, water_id, shooter_id](const GameObjectId id) {
+                if (id == shooter_id)
                 {
-                    main_view_ = View::Cannon;
-                    updateActiveView();
+                    return false;
                 }
-            }
 
-            if (id == water_id)
-            {
-                LOG_DEBUG("ploof");
-            }
-            else
-            {
-                LOG_WARNING("cannon ball collided with game object {} but nothing happend, cannon ball destroyed", id);
-            }
+                auto cannon_ball_non_weak = weak_cannon_ball.lock();
 
-            return true;
-        });
+                if (last_cannon_ball_camera_.has_value() &&
+                    cannon_ball_non_weak->getId() ==
+                        last_cannon_ball_camera_.value().lock()->getOwner()->getParent().value()->getId())
+                {
+                    last_cannon_ball_camera_ = std::nullopt;
+                    if (main_view_ == View::CannonBall)
+                    {
+                        main_view_ = View::Cannon;
+                        updateActiveView();
+                    }
+                }
+
+                if (id == water_id)
+                {
+                    LOG_DEBUG("ploof");
+                }
+                else
+                {
+                    LOG_DEBUG("spawning explosion");
+                    std::shared_ptr<component::Transform> transform =
+                        cannon_ball_non_weak->getComponent<component::Transform>().value();
+
+                    auto explosion = scene_root_->addChild();
+                    explosion->addComponent<component::Transform>(glm::vec3(transform->resolve()[3]));
+                    explosion->addComponent<component::Collider>(component::Collider::Sphere{
+                        .center = ZERO,
+                        .radius = 0.5f,
+                    });
+                    explosion->addComponent<component::Attack>(CANNON_BALL_MIN_DAMAGE, CANNON_BALL_MAX_DAMAGE, EXPLOSION_MIN_HIT_DELAY);
+                    explosion->addComponent<component::Animation>(EXPLOSION_ANIMATION);
+                    explosion->initialize();
+                }
+
+                return true;
+            });
 
         auto rigid_body = cannon_ball->addComponent<component::RigidBody>(CANNON_BALL_MASS);
         rigid_body->setVelocity(event.initial_velocity);
@@ -613,6 +660,15 @@ Application::Application() : free_view_override_(false), physics_(true)
 
     main_view_ = View::Top;
     Singleton::view = main_view_;
+
+    EventQueue::registerCallback<event::DetachGameObject>([](const event::DetachGameObject &event) {
+        auto game_object_option = Singleton::scene_root.lock()->getGameObject(event.game_object_id);
+        if (!game_object_option.has_value())
+            return;
+
+        auto game_object = game_object_option.value();
+        game_object->detach();
+    });
 }
 
 void Application::initializeOpenGL()
@@ -761,7 +817,7 @@ void Application::update(float delta_time)
     }
     if (Input::getState(Input::Action::TogglePhysics) == Input::State::JustReleased)
     {
-        physics_ = !physics_;
+        Singleton::physics_paused = !Singleton::physics_paused;
     }
 
     updateActiveView();
@@ -770,7 +826,7 @@ void Application::update(float delta_time)
 
     scene_root_->update(delta_time);
 
-    if (physics_)
+    if (!Singleton::physics_paused)
     {
         Physics::update(delta_time);
     }

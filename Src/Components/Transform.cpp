@@ -74,6 +74,11 @@ void Transform::setRotation(const glm::quat &rotation)
     rotation_ = rotation;
 }
 
+void Transform::setScale(const glm::vec3 &scale)
+{
+    scale_ = scale;
+}
+
 glm::vec3 Transform::getPosition() const
 {
     return position_;
@@ -82,6 +87,11 @@ glm::vec3 Transform::getPosition() const
 glm::quat Transform::getRotation() const
 {
     return rotation_;
+}
+
+glm::vec3 Transform::getScale() const
+{
+    return scale_;
 }
 
 void Transform::pointToward(const glm::vec3 &direction)

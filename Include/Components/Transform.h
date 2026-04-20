@@ -23,9 +23,11 @@ class Transform : public Component
 
     void setPosition(const glm::vec3 &position);
     void setRotation(const glm::quat &rotation);
+    void setScale(const glm::vec3 &scale);
 
     [[nodiscard]] glm::vec3 getPosition() const;
     [[nodiscard]] glm::quat getRotation() const;
+    [[nodiscard]] glm::vec3 getScale() const;
 
     /// axis should be normalized
     void pointToward(const glm::vec3 &direction);

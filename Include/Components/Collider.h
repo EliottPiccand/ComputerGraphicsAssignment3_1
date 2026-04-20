@@ -32,7 +32,13 @@ class Collider : public Component
         std::vector<glm::uvec3> faces;
     };
 
-    using Type = std::variant<AABB, ConvexPolyhedron>;
+    struct Sphere
+    {
+        glm::vec3 center;
+        float radius;
+    };
+
+    using Type = std::variant<AABB, ConvexPolyhedron, Sphere>;
 
     Collider(Type type, bool is_water = false);
 

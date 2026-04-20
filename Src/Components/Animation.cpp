@@ -16,5 +16,6 @@ void Animation::initialize()
 void Animation::update(float delta_time)
 {
     auto transform = transform_.lock();
-    callback_(delta_time, transform);
+    auto game_object = owner_.lock();
+    callback_(delta_time, transform, game_object);
 }
