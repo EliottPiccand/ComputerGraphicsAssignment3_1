@@ -26,7 +26,7 @@
 
 ## Custom Additional Goals
 - fireworks on win
-- flame + sparks on cannonball stem
+- ~~sparks on cannon ball stem~~
 - ~~water splash on cannonball hit water~~
 - sink animation
 - rotating ship wheel

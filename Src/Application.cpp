@@ -44,6 +44,7 @@
 #include "Utils/Profiling.h"
 #include "Utils/Random.h"
 #include "Utils/RenderingStyle.h"
+#include "Utils/Time.h"
 
 // #define DEBUG_SCENE
 
@@ -171,6 +172,98 @@ static_assert(PERSPECTIVE_FAR > static_cast<double>(WORLD_WIDTH) * std::numbers:
 
 #pragma endregion camera_settings
 
+#pragma region game_contants
+
+constexpr const size_t ROCKS_PER_WORLD_SIDE = 24;
+constexpr const float WALL_HEIGHT = 4.5f;
+constexpr const float WALL_INSET = 5.0f;
+
+constexpr const float SPAWN_LOCATION_INSET = 20.0f;
+constexpr const std::array SPAWN_LOCATIONS = {
+    (WORLD_WIDTH / 2.0f - SPAWN_LOCATION_INSET) * NORTH + (WORLD_WIDTH / 2.0f - SPAWN_LOCATION_INSET) * EAST,
+    (WORLD_WIDTH / 2.0f - SPAWN_LOCATION_INSET) * SOUTH + (WORLD_WIDTH / 2.0f - SPAWN_LOCATION_INSET) * EAST,
+    (WORLD_WIDTH / 2.0f - SPAWN_LOCATION_INSET) * SOUTH + (WORLD_WIDTH / 2.0f - SPAWN_LOCATION_INSET) * WEST,
+    (WORLD_WIDTH / 2.0f - SPAWN_LOCATION_INSET) * NORTH + (WORLD_WIDTH / 2.0f - SPAWN_LOCATION_INSET) * WEST,
+    ZERO,
+};
+
+constexpr const size_t ENEMY_COUNT = 2;
+
+constexpr const float SHIP_MAX_HIT_POINTS = 24'000.0f;
+constexpr const float CANNON_BALL_MIN_DAMAGE = 3'000.0f;
+constexpr const float CANNON_BALL_MAX_DAMAGE = 15'000.0f;
+
+constexpr const float MAX_EXPLOSION_RAIDUS = 5.0f;            // m
+constexpr const float EXPLOSION_RADIUS_EXPANTION_RATE = 8.0f; // m/s
+constexpr const Duration EXPLOSION_MIN_HIT_DELAY = std::chrono::seconds(10);
+const component::Animation::Callback EXPLOSION_ANIMATION =
+    [](float delta_time, std::shared_ptr<component::Transform> transform, std::shared_ptr<GameObject> game_object) {
+        if (Singleton::physics_paused)
+            return;
+
+        const auto scale = transform->getScale();
+        auto radius = scale.x; // assume uniform scaling
+
+        radius += EXPLOSION_RADIUS_EXPANTION_RATE * delta_time;
+        transform->setScale(radius * ONE);
+
+        if (radius >= MAX_EXPLOSION_RAIDUS)
+            EventQueue::post<event::DetachGameObject>(game_object->getId());
+    };
+
+static_assert(ENEMY_COUNT < SPAWN_LOCATIONS.size(), "not enough spawn location for every enemies");
+
+#pragma endregion game_contants
+
+#pragma region particles_settings
+
+constexpr const size_t PLOOF_PARTICLE_COUNT = 500;
+constexpr const float PLOOF_PARTICLE_SPAWN_RADIUS = 2.0f; // m
+constexpr const Color PLOOF_PARTICLE_INNER_COLOR = rgba(140, 188, 236, 0.81);
+constexpr const Color PLOOF_PARTICLE_OUTTER_COLOR = rgba(0, 102, 204, 0.6);
+constexpr const Duration PLOOF_PARTICLE_MAX_LIFETIME = std::chrono::seconds(3);
+constexpr const float PLOOF_PARTICLE_VERTICALITY = 10.0f;
+constexpr const float PLOOF_PARTICLE_SPREAD = glm::radians(3.0f);
+constexpr const float PLOOF_PARTICLE_VELOCITY = 10.0f; // m/s
+
+constexpr const size_t EXPLOSION_PARTICLE_COUNT = 2500;
+constexpr const Color EXPLOSION_PARTICLE_INNER_COLOR = rgba(220, 192, 70, 0.9);
+constexpr const Color EXPLOSION_PARTICLE_OUTTER_COLOR = rgba(252, 55, 29, 0.86);
+constexpr const Duration EXPLOSION_PARTICLE_MAX_LIFETIME =
+    std::chrono::milliseconds(static_cast<int>(MAX_EXPLOSION_RAIDUS / EXPLOSION_RADIUS_EXPANTION_RATE * 1000.0f));
+constexpr const float EXPLOSION_PARTICLE_MAX_VELOCITY = 10.0f; // m/s
+
+constexpr const size_t CANNON_BALL_SPARK_PARTICLE_COUNT = 5;
+constexpr const Duration CANNON_BALL_SPARK_PARTICLE_MAX_LIFETIME = std::chrono::milliseconds(20);
+constexpr const float CANNON_BALL_SPARK_PARTICLE_SPREAD = glm::radians(20.0f);
+constexpr const Color CANNON_BALL_SPARK_PARTICLE_COLOR_1 = rgba(252, 233, 62, 1);
+constexpr const Color CANNON_BALL_SPARK_PARTICLE_COLOR_2 = rgba(255, 29, 29, 1);
+const component::Animation::Callback CANNON_BALL_SPARK_ANIMATION =
+    [](float delta_time, std::shared_ptr<component::Transform> transform, std::shared_ptr<GameObject> game_object) {
+        (void)delta_time;
+        (void)game_object;
+
+        const auto rigid_body = game_object->getComponent<component::RigidBody>().value();
+        const auto backward = -getForwardVector(transform->getRotation());
+        const auto position = glm::vec3(transform->resolve()[3]) + backward * 0.3f + Random::direction() * 0.05f;
+        const auto instant_now = now();
+
+        std::vector<Particle> particles(CANNON_BALL_SPARK_PARTICLE_COUNT);
+        for (auto &particle : particles)
+        {
+            particle.position = position;
+            particle.velocity = Random::direction(backward, CANNON_BALL_SPARK_PARTICLE_SPREAD) + rigid_body->getVelocity();
+            particle.color = glm::mix(CANNON_BALL_SPARK_PARTICLE_COLOR_1, CANNON_BALL_SPARK_PARTICLE_COLOR_2, Random::random(0.0f, 1.0f));
+            particle.lifetime_start = instant_now;
+            particle.max_lifetime = CANNON_BALL_SPARK_PARTICLE_MAX_LIFETIME;
+            particle.subject_to_gravity = true;
+        }
+
+        ParticleSystem::addParticles(particles);
+    };
+
+#pragma endregion particles_settings
+
 #pragma region ship_definition
 
 #define CREATE_SHIP(prefix, texture_override, flag_texture)                                                            \
@@ -263,69 +356,6 @@ static_assert(PERSPECTIVE_FAR > static_cast<double>(WORLD_WIDTH) * std::numbers:
         ResourceLoader::get<resource::Model>(std::string(RADAR_CONE_MODEL)))
 
 #pragma endregion ship_definition
-
-#pragma region game_contants
-
-constexpr const size_t ROCKS_PER_WORLD_SIDE = 24;
-constexpr const float WALL_HEIGHT = 4.5f;
-constexpr const float WALL_INSET = 5.0f;
-
-constexpr const float SPAWN_LOCATION_INSET = 20.0f;
-constexpr const std::array SPAWN_LOCATIONS = {
-    (WORLD_WIDTH / 2.0f - SPAWN_LOCATION_INSET) * NORTH + (WORLD_WIDTH / 2.0f - SPAWN_LOCATION_INSET) * EAST,
-    (WORLD_WIDTH / 2.0f - SPAWN_LOCATION_INSET) * SOUTH + (WORLD_WIDTH / 2.0f - SPAWN_LOCATION_INSET) * EAST,
-    (WORLD_WIDTH / 2.0f - SPAWN_LOCATION_INSET) * SOUTH + (WORLD_WIDTH / 2.0f - SPAWN_LOCATION_INSET) * WEST,
-    (WORLD_WIDTH / 2.0f - SPAWN_LOCATION_INSET) * NORTH + (WORLD_WIDTH / 2.0f - SPAWN_LOCATION_INSET) * WEST,
-    ZERO,
-};
-
-constexpr const size_t ENEMY_COUNT = 2;
-
-constexpr const float SHIP_MAX_HIT_POINTS = 24'000.0f;
-constexpr const float CANNON_BALL_MIN_DAMAGE = 3'000.0f;
-constexpr const float CANNON_BALL_MAX_DAMAGE = 15'000.0f;
-
-constexpr const float MAX_EXPLOSION_RAIDUS = 5.0f;            // m
-constexpr const float EXPLOSION_RADIUS_EXPANTION_RATE = 8.0f; // m/s
-constexpr const Duration EXPLOSION_MIN_HIT_DELAY = std::chrono::seconds(10);
-const component::Animation::Callback EXPLOSION_ANIMATION =
-    [](float delta_time, std::shared_ptr<component::Transform> transform, std::shared_ptr<GameObject> game_object) {
-        if (Singleton::physics_paused)
-            return;
-
-        const auto scale = transform->getScale();
-        auto radius = scale.x; // assume uniform scaling
-
-        radius += EXPLOSION_RADIUS_EXPANTION_RATE * delta_time;
-        transform->setScale(radius * ONE);
-
-        if (radius >= MAX_EXPLOSION_RAIDUS)
-            EventQueue::post<event::DetachGameObject>(game_object->getId());
-    };
-
-static_assert(ENEMY_COUNT < SPAWN_LOCATIONS.size(), "not enough spawn location for every enemies");
-
-#pragma endregion game_contants
-
-#pragma region particles_settings
-
-constexpr const size_t PLOOF_PARTICLE_COUNT = 500;
-constexpr const float PLOOF_PARTICLE_SPAWN_RADIUS = 2.0f; // m
-constexpr const Color PLOOF_PARTICLE_INNER_COLOR = rgba(140, 188, 236, 0.81);
-constexpr const Color PLOOF_PARTICLE_OUTTER_COLOR = rgba(0, 102, 204, 0.6);
-constexpr const Duration PLOOF_PARTICLE_MAX_LIFETIME = std::chrono::seconds(3);
-constexpr const float PLOOF_PARTICLE_VERTICALITY = 10.0f;
-constexpr const float PLOOF_PARTICLE_SPREAD = glm::radians(3.0f);
-constexpr const float PLOOF_PARTICLE_VELOCITY = 10.0f; // m/s
-
-constexpr const size_t EXPLOSION_PARTICLE_COUNT = 2500;
-constexpr const Color EXPLOSION_PARTICLE_INNER_COLOR = rgba(220, 192, 70, 0.9);
-constexpr const Color EXPLOSION_PARTICLE_OUTTER_COLOR = rgba(252, 55, 29, 0.86);
-constexpr const Duration EXPLOSION_PARTICLE_MAX_LIFETIME =
-    std::chrono::milliseconds(static_cast<int>(MAX_EXPLOSION_RAIDUS / EXPLOSION_RADIUS_EXPANTION_RATE * 1000.0f));
-constexpr const float EXPLOSION_PARTICLE_MAX_VELOCITY = 10.0f; // m/s
-
-#pragma endregion particles_settings
 
 Application::Application() : should_close_(false), free_view_override_(false)
 {
@@ -723,6 +753,8 @@ Application::Application() : should_close_(false), free_view_override_(false)
                                                               CANNON_BALL_MODEL_SCALE);
         cannon_ball_model->addComponent<component::ModelInstance>(
             ResourceLoader::getAsset<resource::Model>(CANNON_BALL_MODEL));
+
+        cannon_ball->addComponent<component::Animation>(CANNON_BALL_SPARK_ANIMATION);
 
         if (event.shooter == player_id_)
         {
