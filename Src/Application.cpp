@@ -238,29 +238,30 @@ constexpr const Duration CANNON_BALL_SPARK_PARTICLE_MAX_LIFETIME = std::chrono::
 constexpr const float CANNON_BALL_SPARK_PARTICLE_SPREAD = glm::radians(20.0f);
 constexpr const Color CANNON_BALL_SPARK_PARTICLE_COLOR_1 = rgba(252, 233, 62, 1);
 constexpr const Color CANNON_BALL_SPARK_PARTICLE_COLOR_2 = rgba(255, 29, 29, 1);
-const component::Animation::Callback CANNON_BALL_SPARK_ANIMATION =
-    [](float delta_time, std::shared_ptr<component::Transform> transform, std::shared_ptr<GameObject> game_object) {
-        (void)delta_time;
-        (void)game_object;
+const component::Animation::Callback CANNON_BALL_SPARK_ANIMATION = [](float delta_time,
+                                                                      std::shared_ptr<component::Transform> transform,
+                                                                      std::shared_ptr<GameObject> game_object) {
+    (void)delta_time;
 
-        const auto rigid_body = game_object->getComponent<component::RigidBody>().value();
-        const auto backward = -getForwardVector(transform->getRotation());
-        const auto position = glm::vec3(transform->resolve()[3]) + backward * 0.3f + Random::direction() * 0.05f;
-        const auto instant_now = now();
+    const auto rigid_body = game_object->getComponent<component::RigidBody>().value();
+    const auto backward = -getForwardVector(transform->getRotation());
+    const auto position = glm::vec3(transform->resolve()[3]) + backward * 0.3f + Random::direction() * 0.05f;
+    const auto instant_now = now();
 
-        std::vector<Particle> particles(CANNON_BALL_SPARK_PARTICLE_COUNT);
-        for (auto &particle : particles)
-        {
-            particle.position = position;
-            particle.velocity = Random::direction(backward, CANNON_BALL_SPARK_PARTICLE_SPREAD) + rigid_body->getVelocity();
-            particle.color = glm::mix(CANNON_BALL_SPARK_PARTICLE_COLOR_1, CANNON_BALL_SPARK_PARTICLE_COLOR_2, Random::random(0.0f, 1.0f));
-            particle.lifetime_start = instant_now;
-            particle.max_lifetime = CANNON_BALL_SPARK_PARTICLE_MAX_LIFETIME;
-            particle.subject_to_gravity = true;
-        }
+    std::vector<Particle> particles(CANNON_BALL_SPARK_PARTICLE_COUNT);
+    for (auto &particle : particles)
+    {
+        particle.position = position;
+        particle.velocity = Random::direction(backward, CANNON_BALL_SPARK_PARTICLE_SPREAD) + rigid_body->getVelocity();
+        particle.color = glm::mix(CANNON_BALL_SPARK_PARTICLE_COLOR_1, CANNON_BALL_SPARK_PARTICLE_COLOR_2,
+                                  Random::random(0.0f, 1.0f));
+        particle.lifetime_start = instant_now;
+        particle.max_lifetime = CANNON_BALL_SPARK_PARTICLE_MAX_LIFETIME;
+        particle.subject_to_gravity = true;
+    }
 
-        ParticleSystem::addParticles(particles);
-    };
+    ParticleSystem::addParticles(particles);
+};
 
 #pragma endregion particles_settings
 

@@ -32,7 +32,7 @@
 - rotating ship wheel
 - moving rudder
 - waves + water interaction
-- foam trail
+- ~~foam trail~~
 - sun
 - birds
 

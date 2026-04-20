@@ -30,6 +30,11 @@ const glm::vec3 &RigidBody::getVelocity() const
     return velocity_;
 }
 
+const glm::vec3 &RigidBody::getPosition() const
+{
+    return position_;
+}
+
 void RigidBody::setVelocity(const glm::vec3 &velocity)
 {
     velocity_ = velocity;

@@ -29,6 +29,7 @@ class RigidBody : public Component
 
     void addForce(Force force);
     [[nodiscard]] const glm::vec3 &getVelocity() const;
+    [[nodiscard]] const glm::vec3 &getPosition() const;
     void setVelocity(const glm::vec3 &velocity);
     void setOrientation(const glm::quat &orientation);
 
