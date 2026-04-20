@@ -751,6 +751,9 @@ Application::Application() : should_close_(false), free_view_override_(false)
             LOG_DEBUG("defeat");
             defeat_message_.lock()->visible = true;
         }
+
+        main_view_ = View::Top;
+        updateActiveView();
     });
 }
 
