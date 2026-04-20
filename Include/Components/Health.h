@@ -1,8 +1,10 @@
 #pragma once
 
+#include <functional>
+#include <memory>
+
 #include "Components/Component.h"
 #include "GameObject.h"
-#include <functional>
 
 namespace component
 {

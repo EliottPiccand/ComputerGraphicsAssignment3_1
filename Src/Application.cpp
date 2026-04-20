@@ -13,6 +13,7 @@
 #include "Components/CannonPlayerController.h"
 #include "Components/Collider.h"
 #include "Components/Health.h"
+#include "Components/HealthBar.h"
 #include "Components/LightSource.h"
 #include "Components/ModelInstance.h"
 #include "Components/RigidBody.h"
@@ -158,13 +159,22 @@ static_assert(PERSPECTIVE_FAR > static_cast<double>(WORLD_WIDTH) * std::numbers:
 
 #define CREATE_SHIP(prefix, position, texture_override)                                                                \
     auto prefix##_ship = scene_root_->addChild();                                                                      \
-    prefix##_ship->addComponent<component::Transform>(position);                                                       \
+    auto prefix##_ship_transform = prefix##_ship->addComponent<component::Transform>(position);                        \
     prefix##_ship->addComponent<component::Collider>(SHIP_MODEL_COLLIDER);                                             \
     prefix##_ship->addComponent<component::RigidBody>(SHIP_MASS);                                                      \
-    prefix##_ship->addComponent<component::Health>(SHIP_MAX_HIT_POINTS, [](std::shared_ptr<GameObject> game_object) {  \
-        LOG_DEBUG("ship {} sunk", game_object->getId());                                                               \
-        EventQueue::post<event::DetachGameObject>(game_object->getId());                                                \
-    });                                                                                                                \
+                                                                                                                       \
+    auto prefix##_health_bar = scene_root_->addChild();                                                                \
+    const auto prefix##_health_bar_id = prefix##_health_bar->getId();                                                  \
+    auto prefix##_ship_health = prefix##_ship->addComponent<component::Health>(                                        \
+        SHIP_MAX_HIT_POINTS, [prefix##_health_bar_id](std::shared_ptr<GameObject> game_object) {                       \
+            LOG_DEBUG("ship {} sunk", game_object->getId());                                                           \
+            EventQueue::post<event::DetachGameObject>(game_object->getId());                                           \
+            EventQueue::post<event::DetachGameObject>(prefix##_health_bar_id);                                         \
+        });                                                                                                            \
+                                                                                                                       \
+    /* health bar*/                                                                                                    \
+    prefix##_health_bar->addComponent<component::Transform>();                                                         \
+    prefix##_health_bar->addComponent<component::HealthBar>(prefix##_ship_health, prefix##_ship_transform);            \
                                                                                                                        \
     /* ship model */                                                                                                   \
     auto prefix##_ship_model = prefix##_ship->addChild();                                                              \
@@ -597,7 +607,8 @@ Application::Application() : free_view_override_(false)
                         .center = ZERO,
                         .radius = 0.5f,
                     });
-                    explosion->addComponent<component::Attack>(CANNON_BALL_MIN_DAMAGE, CANNON_BALL_MAX_DAMAGE, EXPLOSION_MIN_HIT_DELAY);
+                    explosion->addComponent<component::Attack>(CANNON_BALL_MIN_DAMAGE, CANNON_BALL_MAX_DAMAGE,
+                                                               EXPLOSION_MIN_HIT_DELAY);
                     explosion->addComponent<component::Animation>(EXPLOSION_ANIMATION);
                     explosion->initialize();
                 }

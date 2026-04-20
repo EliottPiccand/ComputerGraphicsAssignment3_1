@@ -8,9 +8,9 @@
 - ~~at least 2 enemies~~
     - ~~move~~
     - ~~shoot~~
-- hp system
+- ~~hp system~~
     - ~~24k hp~~
-    - health display
+    - ~~health display~~
     - ~~damages 3k-15k randomly~~
 - victory/defeat menu
     - victory state
