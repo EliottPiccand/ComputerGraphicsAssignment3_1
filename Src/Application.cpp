@@ -12,6 +12,7 @@
 #include "Components/CannonAIController.h"
 #include "Components/CannonPlayerController.h"
 #include "Components/Collider.h"
+#include "Components/Flag.h"
 #include "Components/Health.h"
 #include "Components/HealthBar.h"
 #include "Components/LightSource.h"
@@ -87,6 +88,11 @@ const component::Collider::ConvexPolyhedron SHIP_MODEL_COLLIDER = {
             {4, 8, 5},
         },
 };
+
+constexpr const glm::vec3 SHIP_FLAG_TRANSLATION = MODEL_UP * 17.8f + MODEL_FORWARD * 1.85f;
+constexpr const glm::vec3 SHIP_FLAG_ROTATION = {glm::radians(90.0f), glm::radians(180.0f), glm::radians(90.0f)};
+constexpr const std::string_view PLAYER_SHIP_FLAG = "Ship/SailsRopePlayerAlbedo.png";
+constexpr const std::string_view ENEMY_SHIP_FLAG = "Ship/SailsRopeAlbedo.png";
 
 constexpr const std::string_view CANNON_STAND_MODEL = "CannonStand/CannonStand.gltf";
 constexpr const glm::vec3 CANNON_STAND_MODEL_TRANSLATION = {0.0f, 0.0f, 1.0f};
@@ -167,7 +173,7 @@ static_assert(PERSPECTIVE_FAR > static_cast<double>(WORLD_WIDTH) * std::numbers:
 
 #pragma region ship_definition
 
-#define CREATE_SHIP(prefix, texture_override)                                                                          \
+#define CREATE_SHIP(prefix, texture_override, flag_texture)                                                            \
     auto prefix##_ship = scene_root_->addChild();                                                                      \
     auto prefix##_ship_transform = prefix##_ship->addComponent<component::Transform>();                                \
     prefix##_ship->addComponent<component::Collider>(SHIP_MODEL_COLLIDER);                                             \
@@ -195,6 +201,11 @@ static_assert(PERSPECTIVE_FAR > static_cast<double>(WORLD_WIDTH) * std::numbers:
                                                             SHIP_MODEL_SCALE);                                         \
     prefix##_ship_model->addComponent<component::ModelInstance>(ResourceLoader::getAsset<resource::Model>(SHIP_MODEL), \
                                                                 texture_override);                                     \
+                                                                                                                       \
+    /* flag */                                                                                                         \
+    auto prefix##_flag = prefix##_ship->addChild();                                                                    \
+    prefix##_flag->addComponent<component::Transform>(SHIP_FLAG_TRANSLATION, SHIP_FLAG_ROTATION);                      \
+    prefix##_flag->addComponent<component::Flag>(ResourceLoader::getAsset<resource::Texture>(flag_texture));           \
                                                                                                                        \
     /* target (visible in debug mode) */                                                                               \
     auto prefix##_target = scene_root_->addChild();                                                                    \
@@ -310,7 +321,8 @@ constexpr const float PLOOF_PARTICLE_VELOCITY = 10.0f; // m/s
 constexpr const size_t EXPLOSION_PARTICLE_COUNT = 2500;
 constexpr const Color EXPLOSION_PARTICLE_INNER_COLOR = rgba(220, 192, 70, 0.9);
 constexpr const Color EXPLOSION_PARTICLE_OUTTER_COLOR = rgba(252, 55, 29, 0.86);
-constexpr const Duration EXPLOSION_PARTICLE_MAX_LIFETIME = std::chrono::milliseconds(static_cast<int>(MAX_EXPLOSION_RAIDUS / EXPLOSION_RADIUS_EXPANTION_RATE * 1000.0f));
+constexpr const Duration EXPLOSION_PARTICLE_MAX_LIFETIME =
+    std::chrono::milliseconds(static_cast<int>(MAX_EXPLOSION_RAIDUS / EXPLOSION_RADIUS_EXPANTION_RATE * 1000.0f));
 constexpr const float EXPLOSION_PARTICLE_MAX_VELOCITY = 10.0f; // m/s
 
 #pragma endregion particles_settings
@@ -365,6 +377,8 @@ Application::Application() : should_close_(false), free_view_override_(false)
     ResourceLoader::load<resource::Model>(std::string(RADAR_CONE_MODEL),
                                           generateCone(RADAR_CONE_HEIGHT, RADAR_CONE_RAIDUS, RADAR_CONE_RESOLUTION),
                                           RADAR_CONE_COLOR);
+
+    component::Flag::createMesh();
 
 #pragma region scene
 
@@ -508,7 +522,7 @@ Application::Application() : should_close_(false), free_view_override_(false)
     }
 
     // - Player
-    CREATE_SHIP(player, PLAYER_SHIP_TEXTURE_OVERRIDE);
+    CREATE_SHIP(player, PLAYER_SHIP_TEXTURE_OVERRIDE, PLAYER_SHIP_FLAG);
     ships_and_health_bars_.push_back({player_ship, player_health_bar});
 
     player_id_ = player_ship->getId();
@@ -531,7 +545,7 @@ Application::Application() : should_close_(false), free_view_override_(false)
     // - Enemies
     for (size_t i = 0; i < ENEMY_COUNT; ++i)
     {
-        CREATE_SHIP(enemy, resource::Model::TextureOverride{});
+        CREATE_SHIP(enemy, resource::Model::TextureOverride{}, ENEMY_SHIP_FLAG);
         ships_and_health_bars_.push_back({enemy_ship, enemy_health_bar});
 
         auto enemy_ship_target = scene_root_->addChild();
@@ -573,13 +587,15 @@ Application::Application() : should_close_(false), free_view_override_(false)
     // - Victory message
     auto victory_message = scene_root_->addChild();
     victory_message->addComponent<component::Transform>(MESSAGE_POSITION);
-    victory_message->addComponent<component::Text>(MESSAGE_WIDTH, MESSAGE_HEIGHT, ResourceLoader::getAsset<resource::Texture>(VICTORY_MESSAGE));
+    victory_message->addComponent<component::Text>(MESSAGE_WIDTH, MESSAGE_HEIGHT,
+                                                   ResourceLoader::getAsset<resource::Texture>(VICTORY_MESSAGE));
     victory_message_ = victory_message;
-    
+
     // - Defeat message
     auto defeat_message = scene_root_->addChild();
     defeat_message->addComponent<component::Transform>(MESSAGE_POSITION);
-    defeat_message->addComponent<component::Text>(MESSAGE_WIDTH, MESSAGE_HEIGHT, ResourceLoader::getAsset<resource::Texture>(DEFEAT_MESSAGE));
+    defeat_message->addComponent<component::Text>(MESSAGE_WIDTH, MESSAGE_HEIGHT,
+                                                  ResourceLoader::getAsset<resource::Texture>(DEFEAT_MESSAGE));
     defeat_message_ = defeat_message;
 
 #pragma endregion scene
@@ -648,14 +664,16 @@ Application::Application() : should_close_(false), free_view_override_(false)
                         const auto offset = radius * (std::cos(angle) * EAST + std::sin(angle) * NORTH);
 
                         particle.position = cannon_ball_position + offset;
-                        particle.velocity = Random::random(PLOOF_PARTICLE_VELOCITY / 5.0f, PLOOF_PARTICLE_VELOCITY) * Random::direction(glm::normalize(offset + UP * PLOOF_PARTICLE_VERTICALITY), PLOOF_PARTICLE_SPREAD);
+                        particle.velocity = Random::random(PLOOF_PARTICLE_VELOCITY / 5.0f, PLOOF_PARTICLE_VELOCITY) *
+                                            Random::direction(glm::normalize(offset + UP * PLOOF_PARTICLE_VERTICALITY),
+                                                              PLOOF_PARTICLE_SPREAD);
                         particle.max_lifetime = PLOOF_PARTICLE_MAX_LIFETIME;
                         particle.lifetime_start = instant_now;
-                        particle.color = glm::mix(PLOOF_PARTICLE_INNER_COLOR, PLOOF_PARTICLE_OUTTER_COLOR, std::sqrt(radius / PLOOF_PARTICLE_SPAWN_RADIUS));
+                        particle.color = glm::mix(PLOOF_PARTICLE_INNER_COLOR, PLOOF_PARTICLE_OUTTER_COLOR,
+                                                  std::sqrt(radius / PLOOF_PARTICLE_SPAWN_RADIUS));
                         particle.subject_to_gravity = true;
                     }
                     ParticleSystem::addParticles(particles);
-
                 }
                 else
                 {
@@ -973,6 +991,7 @@ void Application::update(float delta_time)
     EventQueue::processAll();
 
     scene_root_->update(delta_time);
+    component::Flag::updateFlapping(delta_time);
 
     if (!Singleton::physics_paused)
     {

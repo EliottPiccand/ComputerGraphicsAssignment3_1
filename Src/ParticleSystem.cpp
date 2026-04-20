@@ -33,7 +33,6 @@ void ParticleSystem::render()
 
     // TODO: use intanciated rendering with shaders
 
-    // Render particles unlit and untextured, with explicit per-particle vertex color.
     glPushAttrib(GL_ENABLE_BIT | GL_LIGHTING_BIT | GL_CURRENT_BIT);
     glDisable(GL_LIGHTING);
     glDisable(GL_TEXTURE_2D);

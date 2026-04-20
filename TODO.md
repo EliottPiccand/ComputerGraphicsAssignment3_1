@@ -20,7 +20,7 @@
 - make cannon balls bigger in top view
 
 ## Additional Goals
-- flapping flag
+- ~~flapping flag~~
 - ~~explosion effect~~
 - ~~cannon recoil~~
 
@@ -44,3 +44,4 @@
 - fix copy_asset.py when assets are removed
 - ~~move textures in the assets/texture folder and fix models accordingly~~
 - pbr (assignment 3_2)
+- instanciated rendering for particle system (assignment 3_2)
