@@ -23,7 +23,7 @@ void ShipPlayerController::stop()
 
 void ShipPlayerController::updateStates()
 {
-    if (Singleton::view == View::Top)
+    if (Singleton::view != View::FreeCamera)
     {
         // Update speed state
         if (Input::getState(Input::Action::SpeedUp) == Input::State::JustReleased)

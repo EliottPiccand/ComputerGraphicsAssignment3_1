@@ -54,7 +54,7 @@ constexpr const std::string_view SHIP_MODEL = "Ship/Ship.gltf";
 constexpr const glm::vec3 SHIP_MODEL_TRANSLATION = -0.5f * MODEL_RIGHT;
 constexpr const glm::vec3 SHIP_MODEL_ROTATION = {glm::radians(90.0f), 0.0f, glm::radians(180.0f)};
 constexpr const glm::vec3 SHIP_MODEL_SCALE = 0.5f * ONE;
-constexpr const float SHIP_MASS = 200.0f; // kg
+constexpr const float SHIP_MASS = 10'000.0f; // kg
 const component::Collider::ConvexPolyhedron SHIP_MODEL_COLLIDER = {
     .vertices =
         {

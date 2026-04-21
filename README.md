@@ -2,8 +2,33 @@
 
 by _Team Baguette_
 
-## Playing the game
-The game starts immediately on running the executable. The player can change the ship speed with the `W` and `S` keys (respectively increasing and decreasing the boat speed), and rotate it using the `A` and `D` keys (turing the boat respectively left and right by 15°). In addition, the player can shoot missiles with his mouse : pressing the left click enable aiming mode which displays a ray toward the target. In aiming mode, 2 actions ar possible : cancel fire by clicking (press and release) the right click, or fire by releasing the left click. Fullscreen can be toggle by clicking the F11 key.
+## Controls
+The game starts immediately on running the executable. The player can change the ship speed with the `W` and `S` keys (respectively increasing and decreasing the boat speed), and rotate it using the `A` and `D` keys (turing the boat respectively left and right by 15°)
+
+The game starts in a top view. Its possible to cycle between views by pressing `V`. Two views are available :
+- Top view : Here, the player can shoot missiles with his mouse : holding the `Left Click` enable aiming mode. In aiming mode, 2 actions are possible : cancel fire by clicking (press and release) the `Right Click`, or fire by releasing the `Left Click`.
+- Cannon / Cannon Ball view : This is only a display view and can help to aim. The player can still control the ship with `W` `A` `S` `D` but can no longer aim / fire. 
+
+At any time, other keybinds are available:
+- releasing `Esc` close the game
+- releasing `G` restart the game
+- releasing `F11` toggle fullscreen mode.
+
+### Debug Controls
+To help with debugging, a few debug options are available :
+- releasing `R` cycle between the different rendering mode. For now, the available rendering modes are :
+    - Default
+    - Wireframe
+- releasing `Enter` toggle a free view camera that can be moved with `W` `A` `S` `D` `Space` and `Left Shift`. (note that here, `W` `A` `S` `D` no longer move the ship).
+- releasing `P` toggle on/off the physics engine
+- releasing `F` when in another view than Top View fire a cannon ball from the player ship
+- the arrow keys `Up` `Left` `Down` `Right` move the player's cannon's target respectively North, West, South and East.
+- releasing `F3` toggle the display of a lot of debug information such as :
+    - colliders: AABB with red boxes, Convex Polyhedron with green wireframe and Sphere with cyan circles
+    - cannon's predicted trajectories: blue line
+    - ship's targets: represented by a 1x1x1 aabb collider at the end of the blue line
+    - enemy ships' waypoints: represented by a 1x1x1 aabb collider. A green dashed line goes from the ship to this waypoint
+    - enemy ships' targets' targets: same as the enemy ships' waypoint, but starting from the current ship's target.
 
 ## Building the game
 This project use CMake.

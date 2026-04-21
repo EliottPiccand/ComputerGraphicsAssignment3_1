@@ -13,17 +13,6 @@ file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/Src/*.cp
 add_executable(${EXECUTABLE_NAME} ${SOURCES})
 
 target_compile_options(${EXECUTABLE_NAME} PRIVATE
-  # -Wall                         # Common warnings
-  # -Wextra                       # Extra warnings
-  # -Wpedantic                    # Strict ISO C++ conformance
-  # -Wconversion                  # Implicit conversions that may lose data
-  # -Wsign-conversion             # Signed/unsigned mismatches
-  # -Wold-style-cast              # C-style casts
-  # -Wcast-align                  # Pointer alignment issues
-  # -Wimplicit-float-conversion   # Float precision loss
-  # -Wshadow                      # Variable shadowing
-  # -Wunused                      # Unused variables/parameters
-  # -Wabstract-vbase-init
   -Weverything
   -Wno-c++98-compat
   -Wno-c++98-compat-pedantic
@@ -33,8 +22,7 @@ target_compile_options(${EXECUTABLE_NAME} PRIVATE
   -Wno-switch-default
   -Wno-global-constructors
   -Wno-exit-time-destructors
-  -Werror                       # Treat all warnings as errors
-  -fsafe-buffer-usage-suggestions
+  -Werror
   -O3
 )
 
@@ -48,11 +36,6 @@ target_link_libraries(${EXECUTABLE_NAME} PRIVATE ${LIBS})
 
 find_package(OpenGL REQUIRED)
 target_link_libraries(${EXECUTABLE_NAME} PRIVATE OpenGL::GL OpenGL::GLU)
-
-target_compile_definitions(${EXECUTABLE_NAME} PUBLIC
-  GLM_ENABLE_EXPERIMENTAL
-#  NLOHMANN_JSON_NO_LITERAL_OPERATOR
-)
 
 target_compile_definitions(${EXECUTABLE_NAME} PRIVATE
   $<$<CONFIG:Debug>:OE_DEBUG>

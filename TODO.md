@@ -16,11 +16,16 @@
     - ~~victory state~~
 - ~~collisions~~
 - update README
+    - ~~Controls~~
+    - Compile info
 
 ## Additional Goals
-- ~~flapping flag~~
 - ~~explosion effect~~
+- camera shake (on getting hit)
+- ~~foam trail~~
 - ~~cannon recoil~~
+- ~~flapping flag~~
+- speed dependent propeller
 
 ## Custom Additional Goals
 - fireworks on win
@@ -30,16 +35,17 @@
 - rotating ship wheel
 - moving rudder
 - waves + water interaction
-- ~~foam trail~~
 - sun
 - birds
+- red overlay on getting hit
 
 ## assignment 3_2
 - wireframe hidden lines removal
 - shader instead of legacy pipeline
 
 ## If time
-- fix copy_asset.py when assets are removed
+- fix copy_asset.py when ?
 - ~~move textures in the assets/texture folder and fix models accordingly~~
 - pbr (assignment 3_2)
 - instanciated rendering for particle system (assignment 3_2)
+- update every part using Instant or Duration to something not linked to the system clock, to properly be able to pause the game.
