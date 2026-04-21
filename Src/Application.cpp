@@ -270,7 +270,8 @@ const component::Animation::Callback CANNON_BALL_SPARK_ANIMATION = [](float delt
 #define CREATE_SHIP(prefix, texture_override, flag_texture)                                                            \
     auto prefix##_ship = scene_root_->addChild();                                                                      \
     auto prefix##_ship_transform = prefix##_ship->addComponent<component::Transform>();                                \
-    prefix##_ship->addComponent<component::Collider>(SHIP_MODEL_COLLIDER);                                             \
+    auto prefix##_ship_collider = prefix##_ship->addComponent<component::Collider>(SHIP_MODEL_COLLIDER);              \
+    prefix##_ship_collider->setCollisionResolutionMask(glm::vec3(1.0f, 1.0f, 0.0f));                                  \
     prefix##_ship->addComponent<component::RigidBody>(SHIP_MASS);                                                      \
                                                                                                                        \
     auto prefix##_health_bar = scene_root_->addChild();                                                                \

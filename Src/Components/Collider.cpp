@@ -316,8 +316,19 @@ bool collide(const Collider::Sphere &sphere_a, const glm::mat4 &transform_a, con
 
 } // namespace
 
-Collider::Collider(Type type, bool is_water) : type_(type), enabled_(true), is_water_(is_water)
+Collider::Collider(Type type, bool is_water)
+    : type_(type), collision_resolution_mask_(1.0f), enabled_(true), is_water_(is_water)
 {
+}
+
+void Collider::setCollisionResolutionMask(const glm::vec3 &mask)
+{
+    collision_resolution_mask_ = glm::max(mask, glm::vec3(0.0f));
+}
+
+const glm::vec3 &Collider::getCollisionResolutionMask() const
+{
+    return collision_resolution_mask_;
 }
 
 void Collider::disable()

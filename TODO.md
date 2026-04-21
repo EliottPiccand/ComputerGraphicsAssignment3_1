@@ -14,10 +14,8 @@
     - ~~damages 3k-15k randomly~~
 - ~~victory/defeat menu~~
     - ~~victory state~~
-- collisions
+- ~~collisions~~
 - update README
-
-- make cannon balls bigger in top view
 
 ## Additional Goals
 - ~~flapping flag~~

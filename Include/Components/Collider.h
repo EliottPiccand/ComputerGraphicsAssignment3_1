@@ -42,6 +42,11 @@ class Collider : public Component
 
     Collider(Type type, bool is_water = false);
 
+    /// Component-wise scale for positional collision resolution axes.
+    /// Example: (1, 1, 0) disables correction along UP.
+    void setCollisionResolutionMask(const glm::vec3 &mask);
+    [[nodiscard]] const glm::vec3 &getCollisionResolutionMask() const;
+
     void disable();
     bool isDisabled();
 
@@ -66,6 +71,8 @@ class Collider : public Component
 
     Type type_;
     AABB aabb_;
+
+    glm::vec3 collision_resolution_mask_;
 
     bool enabled_;
 
