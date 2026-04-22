@@ -4,5 +4,6 @@ Build/
 Dev/
 Download/
 Generated/
+TMP/
 *.clang*
 NOTES.md

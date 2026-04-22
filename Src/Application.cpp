@@ -23,6 +23,7 @@
 #include "Components/Text.h"
 #include "Components/Transform.h"
 #include "Components/Water.h"
+#include "Events/DamageTaken.h"
 #include "Events/DetachGameObject.h"
 #include "Events/EventQueue.h"
 #include "Events/Fire.h"
@@ -62,11 +63,11 @@ const component::Collider::ConvexPolyhedron SHIP_MODEL_COLLIDER = {
             {2.5f, -10.0f, 5.5f},
             {-2.5f, -10.0f, 0.0f},
             {2.5f, -10.0f, 0.0f},
-            {-2.5f, 8.0f, 4.5f},
-            {2.5f, 8.0f, 4.5f},
+            {-2.5f, 8.0f, 4.0f},
+            {2.5f, 8.0f, 4.0f},
             {-2.5f, 8.0f, 0.0f},
             {2.5f, 8.0f, 0.0f},
-            {0.0f, 12.0f, 4.5f},
+            {0.0f, 12.0f, 4.0f},
             {0.0f, 11.5f, 0.5f},
         },
     .faces =
@@ -155,6 +156,9 @@ constexpr const std::string_view DEFEAT_MESSAGE = "Messages/Defeat.png";
 constexpr const float MESSAGE_WIDTH = WORLD_WIDTH * 3.0f / 4.0f;
 constexpr const float MESSAGE_HEIGHT = MESSAGE_WIDTH * 9.0f / 16.0f;
 constexpr const glm::vec3 MESSAGE_POSITION = UP * 60.0f;
+
+constexpr const std::string_view HIT_VIGNETTE = "Effects/HitVignette.png";
+constexpr const Duration HIT_VIGNETTE_DURATION = std::chrono::milliseconds(800);
 
 #pragma endregion model_settings
 
@@ -270,8 +274,8 @@ const component::Animation::Callback CANNON_BALL_SPARK_ANIMATION = [](float delt
 #define CREATE_SHIP(prefix, texture_override, flag_texture)                                                            \
     auto prefix##_ship = scene_root_->addChild();                                                                      \
     auto prefix##_ship_transform = prefix##_ship->addComponent<component::Transform>();                                \
-    auto prefix##_ship_collider = prefix##_ship->addComponent<component::Collider>(SHIP_MODEL_COLLIDER);              \
-    prefix##_ship_collider->setCollisionResolutionMask(glm::vec3(1.0f, 1.0f, 0.0f));                                  \
+    auto prefix##_ship_collider = prefix##_ship->addComponent<component::Collider>(SHIP_MODEL_COLLIDER);               \
+    prefix##_ship_collider->setCollisionResolutionMask(glm::vec3(1.0f, 1.0f, 0.0f));                                   \
     prefix##_ship->addComponent<component::RigidBody>(SHIP_MASS);                                                      \
                                                                                                                        \
     auto prefix##_health_bar = scene_root_->addChild();                                                                \
@@ -412,6 +416,8 @@ Application::Application() : should_close_(false), free_view_override_(false)
 
     component::Flag::createMesh();
 
+    ResourceLoader::getAsset<resource::Texture>(HIT_VIGNETTE);
+
 #pragma region scene
 
     scene_root_ = std::make_shared<GameObject>();
@@ -427,7 +433,7 @@ Application::Application() : should_close_(false), free_view_override_(false)
             .near = PERSPECTIVE_NEAR,
             .far = PERSPECTIVE_FAR,
         },
-        EAST);
+        EAST, false);
     free_view_controls_ = perspective_camera->addComponent<component::FreeViewControls>();
 
     // - Top View Camera
@@ -861,6 +867,15 @@ Application::Application() : should_close_(false), free_view_override_(false)
         main_view_ = View::Top;
         updateActiveView();
     });
+
+    EventQueue::registerCallback<event::DamageTaken>([this](const event::DamageTaken &event) {
+        if (event.game_object_id != player_id_)
+            return;
+
+        component::Camera3D::displayEffect(ResourceLoader::getAsset<resource::Texture>(HIT_VIGNETTE),
+                                           HIT_VIGNETTE_DURATION);
+        component::Camera3D::shake(HIT_VIGNETTE_DURATION);
+    });
 }
 
 void Application::initializeOpenGL()
@@ -1024,6 +1039,7 @@ void Application::update(float delta_time)
 
     EventQueue::processAll();
 
+    component::Camera3D::updateEffect(delta_time);
     scene_root_->update(delta_time);
     component::Flag::updateFlapping(delta_time);
 
@@ -1042,9 +1058,13 @@ void Application::render() const
     glClearColor(_v4(SKY_COLOR));
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    Singleton::active_camera.lock()->bind();
+    auto camera = Singleton::active_camera.lock();
+    camera->bind();
+
     scene_root_->render();
     ParticleSystem::render();
+
+    camera->renderEffect();
 }
 
 void Application::restart()

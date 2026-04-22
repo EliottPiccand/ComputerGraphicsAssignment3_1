@@ -4,6 +4,8 @@
 
 #include "Components/Attack.h"
 #include "Components/Collider.h"
+#include "Events/DamageTaken.h"
+#include "Events/EventQueue.h"
 #include "Singleton.h"
 #include "Utils/Log.h"
 
@@ -58,6 +60,8 @@ void Health::damage(float hit_points)
         on_death_callback_(owner_.lock());
 
     hit_points_ = std::max(0.0f, hit_points_);
+
+    EventQueue::post<event::DamageTaken>(getOwner()->getId());
 }
 
 float Health::getRemainingHealthRatio() const

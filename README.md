@@ -31,21 +31,29 @@ To help with debugging, a few debug options are available :
     - enemy ships' targets' targets: same as the enemy ships' waypoint, but starting from the current ship's target.
 
 ## Building the game
-This project use CMake.
+This project use CMake for compiling, and Python for moving assets.
+If you don't have Python installed, you can remove everything inside `CMakeLists.txt` after the line `# --- Assets ---`, but you will have to manually copy the `Assets` folder next to the executable.
 
 ### With pure CMake
-```cmd
-cmake -B Build/Release -DCMAKE_BUILD_TYPE=Release
-cmake -B Build/Debug -DCMAKE_BUILD_TYPE=Debug
-cmake -B Build/Profiling -DCMAKE_BUILD_TYPE=Profiling
-```
++ Setup the dependancies:
+    ```cmd
+    git clone https://github.com/syoyo/tinygltf Lib/tinygltf
+    git clone https://github.com/nothings/stb Lib/stb
+    ```
 
-And then, compile with
-```cmake
-cmake --build Build/Release
-cmake --build Build/Debug
-cmake --build Build/Profiling
-```
++ Setup the CMake project with one of:
+    ```cmd
+    cmake -B Build/Release -DCMAKE_BUILD_TYPE=Release
+    cmake -B Build/Debug -DCMAKE_BUILD_TYPE=Debug
+    cmake -B Build/Profiling -DCMAKE_BUILD_TYPE=Profiling
+    ```
+
++ Compile with:
+    ```cmake
+    cmake --build Build/Release
+    cmake --build Build/Debug
+    cmake --build Build/Profiling
+    ```
 
 ### With VisualStudio
 + Create an empty solution
@@ -57,13 +65,24 @@ cmake --build Build/Profiling
     + Add to `Configuration Properties > C/C++ > General > Additional Include Directories` :
         - `path/to/repo/Include`;
         - `path/to/repo/Lib`;
-    + Add to `Configuration Properties > C/C++ > Preprocessor > Preprocessor Definitions` : `OE_RELEASE;GLM_ENABLE_EXPERIMENTAL`;
+    + Add to `Configuration Properties > C/C++ > Preprocessor > Preprocessor Definitions` : `OE_RELEASE`
     + Change `Configuration Properties > C/C++ > Output Files > Object File Names` to `$(IntDir)%(RelativeDir)%(Filename).obj`;
     + Add to `Configuration Properties > C/C++ > Command Line > Additional Options` : `-Xclang -std=c++23`;
     + Add to `Configuration Properties > Linker > General > Additional Library Directories` : `path/to/repo/Lib`;
     + Add to `Configuration Properties > Linker > Input > Additional Dependencies` : `glew32.lib; glfw3.lib; opengl32.lib; user32.lib; gdi32.lib; shell32.lib; glu32.lib`;
 + Switch the Solution Configuration to `Release`;
-+ Build and launch without the debugger.
++ Build without launching by pressing ``F7`;
++ Locate the created `.exe` file, and copy the `Assets` folder next to it. It should looks like
+    ```cmd
+    SomeDir
+    ├───MyProgram.exe
+    └───Assets
+        ├───Models
+        │   └───...
+        └───Textures
+            └───...
+    ```
++ Launch the game by pressing `Ctrl + F5`. (The window might stay blank for a few seconds the time for the assets to load).
 
 ### Using the Profiling Profile
 [Tracy](https://github.com/wolfpld/tracy) must be added as a Git submodule (see `.gitmodules`) to be able to compile with the Profiling profile. Note that to use Tracy, the submodule should be checkout to the last stable version like

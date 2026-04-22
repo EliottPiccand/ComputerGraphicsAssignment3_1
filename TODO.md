@@ -15,29 +15,29 @@
 - ~~victory/defeat menu~~
     - ~~victory state~~
 - ~~collisions~~
-- update README
+- ~~update README~~
     - ~~Controls~~
-    - Compile info
+    - ~~Compile info~~
 
 ## Additional Goals
 - ~~explosion effect~~
-- camera shake (on getting hit)
+- ~~camera shake (on getting hit)~~
 - ~~foam trail~~
 - ~~cannon recoil~~
 - ~~flapping flag~~
 - speed dependent propeller
 
 ## Custom Additional Goals
-- fireworks on win
-- ~~sparks on cannon ball stem~~
 - ~~water splash on cannonball hit water~~
+- ~~sparks on cannon ball stem~~
+- ~~red overlay on getting hit~~
+- fireworks on win
 - sink animation
 - rotating ship wheel
 - moving rudder
 - waves + water interaction
 - sun
 - birds
-- red overlay on getting hit
 
 ## assignment 3_2
 - wireframe hidden lines removal

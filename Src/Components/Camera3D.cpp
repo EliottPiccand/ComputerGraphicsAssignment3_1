@@ -10,11 +10,14 @@
 #include "Singleton.h"
 #include "Utils/Color.h"
 #include "Utils/Constants.h"
+#include "Utils/Math.h"
 #include "Utils/Profiling.h"
+#include "Utils/Random.h"
 
 using namespace component;
 
-Camera3D::Camera3D(Data data, const glm::vec3 &forward) : data_(data), forward_(forward)
+Camera3D::Camera3D(Data data, const glm::vec3 &forward, bool display_effects)
+    : display_effects_(display_effects), data_(data), forward_(forward)
 {
     if (!static_initialized_)
     {
@@ -24,11 +27,13 @@ Camera3D::Camera3D(Data data, const glm::vec3 &forward) : data_(data), forward_(
     }
 }
 
-Camera3D::Camera3D(Perspective perspective, const glm::vec3 &forward) : Camera3D(Data(perspective), forward)
+Camera3D::Camera3D(Perspective perspective, const glm::vec3 &forward, bool display_effects)
+    : Camera3D(Data(perspective), forward, display_effects)
 {
 }
 
-Camera3D::Camera3D(Orthographic orthographic, const glm::vec3 &forward) : Camera3D(Data(orthographic), forward)
+Camera3D::Camera3D(Orthographic orthographic, const glm::vec3 &forward, bool display_effects)
+    : Camera3D(Data(orthographic), forward, display_effects)
 {
 }
 
@@ -69,29 +74,29 @@ bool Camera3D::render() const
             glLineWidth(2.0f);
 
             glBegin(GL_LINES);
-                glVertex3f(0.0f, 0.0f, 0.0f);
-                glVertex3f(_v3(near_top_left));
+            glVertex3f(0.0f, 0.0f, 0.0f);
+            glVertex3f(_v3(near_top_left));
 
-                glVertex3f(0.0f, 0.0f, 0.0f);
-                glVertex3f(_v3(near_top_right));
+            glVertex3f(0.0f, 0.0f, 0.0f);
+            glVertex3f(_v3(near_top_right));
 
-                glVertex3f(0.0f, 0.0f, 0.0f);
-                glVertex3f(_v3(near_bottom_left));
+            glVertex3f(0.0f, 0.0f, 0.0f);
+            glVertex3f(_v3(near_bottom_left));
 
-                glVertex3f(0.0f, 0.0f, 0.0f);
-                glVertex3f(_v3(near_bottom_right));
+            glVertex3f(0.0f, 0.0f, 0.0f);
+            glVertex3f(_v3(near_bottom_right));
 
-                glVertex3f(_v3(near_top_left));
-                glVertex3f(_v3(near_top_right));
+            glVertex3f(_v3(near_top_left));
+            glVertex3f(_v3(near_top_right));
 
-                glVertex3f(_v3(near_top_right));
-                glVertex3f(_v3(near_bottom_right));
+            glVertex3f(_v3(near_top_right));
+            glVertex3f(_v3(near_bottom_right));
 
-                glVertex3f(_v3(near_bottom_right));
-                glVertex3f(_v3(near_bottom_left));
+            glVertex3f(_v3(near_bottom_right));
+            glVertex3f(_v3(near_bottom_left));
 
-                glVertex3f(_v3(near_bottom_left));
-                glVertex3f(_v3(near_top_left));
+            glVertex3f(_v3(near_bottom_left));
+            glVertex3f(_v3(near_top_left));
             glEnd();
 
             glPointSize(8.0f);
@@ -101,7 +106,7 @@ bool Camera3D::render() const
             glMaterialfv(GL_FRONT, GL_DIFFUSE, MATERIAL_RED);
 
             glBegin(GL_POINTS);
-                glVertex3f(0.0f, 0.0f, 0.0f);
+            glVertex3f(0.0f, 0.0f, 0.0f);
             glEnd();
         }
     }
@@ -114,6 +119,130 @@ void Camera3D::onViewportResize(uint32_t width, uint32_t height)
     viewport_width = static_cast<float>(width);
     viewport_height = static_cast<float>(height);
     aspect_ratio_ = static_cast<double>(width) / static_cast<double>(height);
+}
+
+void Camera3D::displayEffect(std::shared_ptr<resource::Texture> texture, Duration duration)
+{
+    effect_ = texture;
+    effect_duration_ = duration;
+    effect_start_time_ = now();
+}
+
+void Camera3D::shake(Duration duration)
+{
+    constexpr const float SHAKING_INTENSITY = 2.0f;
+
+    shaking_duration_ = duration;
+    shaking_start_ = now();
+    shaking_offset_ = {SHAKING_INTENSITY, 0.0f};
+    last_shake_ = now();
+}
+
+void Camera3D::updateEffect(float delta_time)
+{
+    (void)delta_time;
+
+    constexpr const float SHAKING_SPREAD_ANGLE = glm::radians(60.0f);
+
+    const auto instant_now = now();
+
+    if (instant_now >= effect_start_time_ + effect_duration_)
+    {
+        effect_ = nullptr;
+    }
+
+    if (instant_now < shaking_start_ + shaking_duration_)
+    {
+        const auto elapsed = instant_now - shaking_start_;
+        const double duration = static_cast<double>(shaking_duration_.count());
+        const float t = static_cast<float>(
+            glm::clamp((duration > 0.0) ? (static_cast<double>(elapsed.count()) / duration) : 1.0, 0.0, 1.0));
+        const float alpha = 1.0f - t * t;
+
+        shaking_offset_ =
+            glm::rotate(shaking_offset_,
+                        glm::radians(180.0f + Random::random(-SHAKING_SPREAD_ANGLE, SHAKING_SPREAD_ANGLE))) *
+            alpha;
+        last_shake_ = instant_now;
+    }
+}
+
+void Camera3D::renderEffect() const
+{
+    if (effect_ == nullptr)
+        return;
+
+    if (!display_effects_)
+        return;
+
+    PUSH_CLEAR_STATE();
+
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+
+    const GLboolean depth_test_was_enabled = glIsEnabled(GL_DEPTH_TEST);
+    const GLboolean lighting_was_enabled = glIsEnabled(GL_LIGHTING);
+    const GLboolean cull_face_was_enabled = glIsEnabled(GL_CULL_FACE);
+    GLboolean depth_write_was_enabled = GL_TRUE;
+    glGetBooleanv(GL_DEPTH_WRITEMASK, &depth_write_was_enabled);
+
+    glDisable(GL_DEPTH_TEST);
+    glDepthMask(GL_FALSE);
+    glDisable(GL_LIGHTING);
+    glDisable(GL_CULL_FACE);
+
+    constexpr const glm::vec2 TOP_RIGHT = {1.0f, -1.0f};
+    constexpr const glm::vec2 TOP_LEFT = {-1.0f, -1.0f};
+    constexpr const glm::vec2 BOTTOM_LEFT = {-1.0f, 1.0f};
+    constexpr const glm::vec2 BOTTOM_RIGHT = {1.0f, 1.0f};
+
+    const auto ambient = glm::vec4(glm::vec3(color::WHITE) * 0.5f, color::WHITE.w);
+    GLfloat ambient_color[] = {_v4(ambient)};
+    GLfloat diffuse_color[] = {_v4(color::WHITE)};
+    GLfloat specular_color[] = {0.0f, 0.0f, 0.0f, 1.0f};
+    glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, ambient_color);
+    glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, diffuse_color);
+    glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, specular_color);
+
+    glEnable(GL_TEXTURE_2D);
+    effect_->bind(GL_TEXTURE0);
+    const auto elapsed = now() - effect_start_time_;
+    const double duration = static_cast<double>(effect_duration_.count());
+    const double t_unclamped = (duration > 0.0) ? (static_cast<double>(elapsed.count()) / duration) : 1.0;
+    const float t = static_cast<float>(t_unclamped < 0.0 ? 0.0 : (t_unclamped > 1.0 ? 1.0 : t_unclamped));
+    const float alpha = 1.0f - t * t;
+    glColor4f(1.0f, 1.0f, 1.0f, alpha);
+
+    glBegin(GL_QUADS);
+        glTexCoord2f(1.0f, 0.0f); glVertex2f(_v2(TOP_RIGHT));
+        glTexCoord2f(0.0f, 0.0f); glVertex2f(_v2(TOP_LEFT));
+        glTexCoord2f(0.0f, 1.0f); glVertex2f(_v2(BOTTOM_LEFT));
+        glTexCoord2f(1.0f, 1.0f); glVertex2f(_v2(BOTTOM_RIGHT));
+    glEnd();
+
+    effect_->unbind(GL_TEXTURE0);
+    glDisable(GL_TEXTURE_2D);
+
+    if (cull_face_was_enabled)
+        glEnable(GL_CULL_FACE);
+    else
+        glDisable(GL_CULL_FACE);
+
+    if (lighting_was_enabled)
+        glEnable(GL_LIGHTING);
+    else
+        glDisable(GL_LIGHTING);
+
+    glDepthMask(depth_write_was_enabled);
+    if (depth_test_was_enabled)
+        glEnable(GL_DEPTH_TEST);
+    else
+        glDisable(GL_DEPTH_TEST);
+
+    POP_CLEAR_STATE();
 }
 
 glm::vec3 Camera3D::getPosition() const
@@ -151,8 +280,15 @@ void Camera3D::bind() const
         throw std::runtime_error("Camera3D type not implementd");
     }
 
-    const auto eye = getPosition();
-    const auto look_at = eye + forward();
+    const auto forward_world = forward();
+    const auto right_world = glm::normalize(glm::cross(forward_world, UP));
+    const auto fallback_right_world = glm::normalize(glm::cross(forward_world, EAST));
+    const auto plane_right = (glm::length(right_world) > EPSILON) ? right_world : fallback_right_world;
+    const auto plane_up = glm::normalize(glm::cross(plane_right, forward_world));
+
+    const glm::vec3 offset = display_effects_ ? (shaking_offset_.x * plane_right + shaking_offset_.y * plane_up) : ZERO;
+    const auto eye = getPosition() + offset;
+    const auto look_at = eye + forward_world;
 
     // View Matrix
     glMatrixMode(GL_MODELVIEW);

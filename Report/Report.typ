@@ -95,12 +95,14 @@ Our program contains several features, including:
 - multiple views;
 // additional goals
 - explosion effects;
+- camera shaking;
 - foam trails;
 - cannon recoil;
 - flapping flag;
 // custom additional goals
 - water splash;
-- sparks on cannon balls.
+- sparks on cannon balls;
+- red vignette on player hit.
 
 and some features not visible by the players, but useful for development:
 - hierarchical system;
@@ -252,6 +254,52 @@ The game feature 3 view modes:
 When a cannon ball hit anything but water, it spawn an explosion (see @fig:explosion).
 To render it, we used 2500 particles with different colors and velocity.
 
+=== Camera Shaking
+Whenever a the player ship takes damages, the camera shakes for a short amount of time.
+The shaking is done by creating an `offset` 2D vector using the @alg:camera-shake, and use this offset to move the camera eyes (from the "look at" view matrix) in a plan normal to the camera forward, without changing the `look at` position.
+
+#algorithm-figure(
+  "Camera Shake",
+  vstroke: .5pt + luma(200),
+  {
+    import algorithmic: *
+    let CallMath(name) = arraify(CallInline.with(name)[]).join()()
+
+    Function(
+      "Shake",
+      (),
+      {
+
+        Comment[Crate a vector of length INTENSITY with a random orientation]
+        Assign("offset", $#CallMath("Random-Unit-Vector") times "INTENSITY"$)
+
+        LineBreak
+
+        While(
+          $#Fn.with("length")[offset]().join() > "MIN_SHAKING"$,
+          {
+            Comment[Flip the offset]
+            Assign("offset", Call.with("Rotate")[offset, 180°]())
+
+            LineBreak
+
+            Comment[Slightly Rotate the offset by some random angle]
+            Assign("angle", Fn.with("random")[-60°, 60°]())
+            Assign("offset", Call.with("Rotate")[offset, angle]())
+
+            LineBreak
+
+            Comment[Decrease the offset intensity]
+            Assign("offset", $"offset" times "INTENSITY_DECAY"$)
+
+            
+          },
+        )
+      },
+    )
+  }
+) <alg:camera-shake>
+
 === Foam Trails
 When a ship is moving, it spawn behind it a foam trail (see @fig:foam-trail).
 To render it, we used 50 particles per frame with different position, velocity and lifetime, subject to gravity.
@@ -273,6 +321,9 @@ Each cannon ball has animated sparks on its stem (see @fig:cannon-ball).
 This is done by spawning a few particle each frames.
 This is also that which allow the player to see the cannon balls in top view.
 Otherwise, they would be too small and only appear as a 1 pixel wide black dot.
+
+=== Red Vignette on Player Hit
+Whenever the player gets hit, a red vignette effect covers the screen for a small duration (see @fig:red-vignette).
 
 === Debug Mode
 Not really a player-oriented feature, but we added a debug mode to the game (it can be toggled by clicking `F3`) to display useful debug information such as:
@@ -319,7 +370,7 @@ To help with debugging, a few debug options are available :
 
 == Game Screenshots
 
-#let imageWidth = 98%;
+#let imageWidth = 96%;
 
 #figure(
   image("Images/PlayerShip.png", width: imageWidth),
@@ -430,6 +481,11 @@ To help with debugging, a few debug options are available :
   image("Images/WaterSplash.png", width: imageWidth),
   caption: [Water splash],
 ) <fig:water-splash>
+
+#figure(
+  image("Images/RedVignette.png", width: imageWidth),
+  caption: [Red vignette effect when the player ship get hit],
+) <fig:red-vignette>
 
 #figure(
   image("Images/Axis.png", width: imageWidth),
